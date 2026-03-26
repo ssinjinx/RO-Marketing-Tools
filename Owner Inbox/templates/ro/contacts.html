@@ -31,7 +31,14 @@
                     </a>
                 {% else %}—{% endif %}
             </td>
-            <td>{% if c.email %}<a href="mailto:{{ c.email }}">{{ c.email }}</a>{% else %}—{% endif %}</td>
+            <td>
+                {% if c.email and '@' in c.email and '.' in c.email.split('@')[-1] %}
+                    <a href="#" class="link-primary email-trigger"
+                       data-contact-id="{{ c.id }}"
+                       data-email="{{ c.email }}"
+                       data-name="{{ c.name or '' }}">{{ c.email }}</a>
+                {% endif %}
+            </td>
             <td>{{ c.phone or '—' }}</td>
             <td>{% if c.linkedin_url %}<a href="{{ c.linkedin_url }}" target="_blank" rel="noopener">LinkedIn</a>{% else %}—{% endif %}</td>
             <td class="actions">
@@ -49,4 +56,109 @@
 {% else %}
 <div class="empty-state">No contacts yet. <a href="{{ url_for('ro_contact_add') }}">Add one</a>.</div>
 {% endif %}
+
+<!-- Email Draft Modal -->
+<div id="emailModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:12px; width:100%; max-width:580px; margin:1rem; box-shadow:0 8px 40px rgba(0,0,0,0.25); overflow:hidden;">
+        <div style="background:#1a5c35; padding:1rem 1.25rem; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#fff; font-weight:600; font-size:1rem;">New Message</span>
+            <button onclick="closeModal()" style="background:none; border:none; color:#fff; font-size:1.4rem; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1rem 1.25rem; border-bottom:1px solid #e5e7eb;">
+            <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem;">
+                <span style="color:#6b7280; font-size:.85rem; width:2.5rem;">To:</span>
+                <span id="modalEmail" style="font-size:.9rem; color:#111;"></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:.5rem;">
+                <span style="color:#6b7280; font-size:.85rem; width:2.5rem;">Sub:</span>
+                <span id="modalSubject" style="font-size:.9rem; color:#111; font-style:italic;"></span>
+            </div>
+        </div>
+        <div style="padding:1rem 1.25rem;">
+            <textarea id="modalBody" rows="10"
+                style="width:100%; border:1px solid #d1d5db; border-radius:8px; padding:.75rem; font-size:.875rem; line-height:1.6; resize:vertical; font-family:inherit; color:#111; box-sizing:border-box;"
+                placeholder="Click 'Generate Draft' to create an AI-written email..."></textarea>
+        </div>
+        <div style="padding:.75rem 1.25rem 1.25rem; display:flex; gap:.75rem; justify-content:flex-end; align-items:center;">
+            <span id="modalStatus" style="font-size:.8rem; color:#6b7280; margin-right:auto;"></span>
+            <button id="generateBtn" onclick="generateDraft()" class="btn-secondary">Generate Draft</button>
+            <button onclick="copyDraft()" class="btn-primary">Copy</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentContactId = null;
+
+document.querySelectorAll('.email-trigger').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        currentContactId = this.dataset.contactId;
+        document.getElementById('modalEmail').textContent = this.dataset.email;
+        document.getElementById('modalSubject').textContent = '';
+        document.getElementById('modalBody').value = '';
+        document.getElementById('modalStatus').textContent = '';
+        document.getElementById('emailModal').style.display = 'flex';
+    });
+});
+
+function closeModal() {
+    document.getElementById('emailModal').style.display = 'none';
+    currentContactId = null;
+}
+
+document.getElementById('emailModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+function generateDraft() {
+    if (!currentContactId) return;
+    var btn = document.getElementById('generateBtn');
+    var status = document.getElementById('modalStatus');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    status.textContent = '';
+
+    fetch('/ro/contacts/' + currentContactId + '/draft-email', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                status.textContent = 'Error: ' + data.error;
+            } else {
+                var lines = data.draft.split('\n');
+                var subjectLine = '';
+                var bodyLines = [];
+                var pastSubject = false;
+                for (var i = 0; i < lines.length; i++) {
+                    if (!pastSubject && lines[i].toLowerCase().startsWith('subject:')) {
+                        subjectLine = lines[i].replace(/^subject:\s*/i, '').trim();
+                        pastSubject = true;
+                    } else if (pastSubject || subjectLine) {
+                        bodyLines.push(lines[i]);
+                    }
+                }
+                document.getElementById('modalSubject').textContent = subjectLine;
+                document.getElementById('modalBody').value = bodyLines.join('\n').replace(/^\n+/, '');
+                status.textContent = 'Draft ready.';
+            }
+        })
+        .catch(function() { status.textContent = 'Request failed.'; })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = 'Generate Draft';
+        });
+}
+
+function copyDraft() {
+    var body = document.getElementById('modalBody').value;
+    var subject = document.getElementById('modalSubject').textContent;
+    var email = document.getElementById('modalEmail').textContent;
+    var full = 'To: ' + email + '\nSubject: ' + subject + '\n\n' + body;
+    navigator.clipboard.writeText(full).then(function() {
+        var status = document.getElementById('modalStatus');
+        status.textContent = 'Copied to clipboard!';
+        setTimeout(function() { status.textContent = ''; }, 2500);
+    });
+}
+</script>
 {% endblock %}

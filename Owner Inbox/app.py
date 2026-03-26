@@ -2,6 +2,9 @@ import os
 import re
 import secrets
 import datetime
+import smtplib
+import socket
+import subprocess
 import requests as http_requests
 from flask import Flask, render_template, request, redirect, url_for, flash, g, session, jsonify
 from database import get_db, close_db, init_db
@@ -39,7 +42,7 @@ PIN = "6911"
 
 @app.before_request
 def check_pin():
-    if request.endpoint in ('lock', 'unlock', 'static', 'chat_send', 'chat_poll', 'chat_history'):
+    if request.endpoint in ('lock', 'unlock', 'static', 'chat_send', 'chat_poll', 'chat_history', 'projects_complete'):
         return
     if not session.get('unlocked'):
         return redirect(url_for('lock'))
@@ -523,6 +526,59 @@ _Agent: Add your notes here as you work._
     return filepath
 
 
+# ─── Agent Dispatch ───────────────────────────────────────────────────────────
+
+AGENT_PERSONAS = {
+    'Maya': """You are Maya, a pragmatic full-stack developer. You build Flask routes, SQLite schemas, and HTML/CSS templates. You write minimum working code — no overengineering, no features that weren't asked for. You match the existing code style.""",
+    'Sage': """You are Sage, a thorough senior researcher. You investigate real-world skills, tools, and domain knowledge needed for a given topic. You deliver detailed, accurate findings that others can act on.""",
+    'Kai': """You are Kai, a sharp marketing data scraper. You build Python scrapers using BeautifulSoup, requests, and Apify. You design clean SQLite schemas and deliver structured, deduplicated data.""",
+    'Rex': """You are Rex, a practical automation engineer. You write reliable Python scripts for scheduling, monitoring, and reporting. You use cron, SQLite, and file-based pipelines. Your code runs quietly and handles errors gracefully.""",
+    'Ian': """You are Ian, the HR agent. You create new agent profiles with a clear Name, Identity, and Persona. You save them to the Team folder and update the Team README.""",
+}
+
+WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def dispatch_agent(project_id, project_name, description, priority, agent_name):
+    """Spawn a claude CLI subprocess to execute the project task."""
+    persona = AGENT_PERSONAS.get(agent_name, AGENT_PERSONAS['Maya'])
+
+    prompt = f"""{persona}
+
+You have been assigned a project by the orchestrator.
+
+PROJECT ID: {project_id}
+PROJECT NAME: {project_name}
+PRIORITY: {priority}
+DESCRIPTION:
+{description or 'No description provided.'}
+
+WORKSPACE: {WORKSPACE_ROOT}
+APP DIR: {APP_DIR}
+
+Do the work described above. When you are completely finished:
+1. Write a brief summary of what you did to: {APP_DIR}/reports/completed_{project_id}.txt
+2. Call this API to mark the project done: POST http://localhost:5000/projects/{project_id}/complete
+
+Use curl for the API call:
+  curl -s -X POST http://localhost:5000/projects/{project_id}/complete
+
+Do not stop until the work is complete and the completion call has been made."""
+
+    log_path = os.path.join(APP_DIR, 'reports', f'agent_log_{project_id}.txt')
+    os.makedirs(os.path.join(APP_DIR, 'reports'), exist_ok=True)
+
+    with open(log_path, 'w') as log_file:
+        subprocess.Popen(
+            ['claude', '--dangerously-skip-permissions', '-p', prompt],
+            cwd=WORKSPACE_ROOT,
+            stdout=log_file,
+            stderr=log_file,
+            start_new_session=True
+        )
+
+
 # ─── Projects ─────────────────────────────────────────────────────────────────
 
 @app.route('/projects')
@@ -536,30 +592,35 @@ def projects_list():
 def projects_new():
     if request.method == 'POST':
         db = get_db()
+        name        = request.form['name']
+        description = request.form.get('description')
+        priority    = request.form.get('priority', 'medium')
+
         db.execute(
             """INSERT INTO projects (name, description, status, priority, start_date, target_date, tags)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (request.form['name'], request.form.get('description'),
-             request.form.get('status', 'active'), request.form.get('priority', 'medium'),
-             request.form.get('start_date') or None, request.form.get('target_date') or None,
+            (name, description, 'active', priority,
+             request.form.get('start_date') or None,
+             request.form.get('target_date') or None,
              request.form.get('tags'))
         )
         db.commit()
-
-        # Get the project ID that was just created
         project_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-        # Create Team Inbox task file
-        suggested_agent = suggest_agent(request.form['name'], request.form.get('description'))
-        task_file = create_team_inbox_task(
-            request.form['name'],
-            request.form.get('description'),
-            request.form.get('priority', 'medium'),
-            suggested_agent,
-            project_id
-        )
+        # Pick the right agent and mark them as working
+        agent_name = suggest_agent(name, description)
+        agent = db.execute("SELECT id FROM agents WHERE name = ?", (agent_name,)).fetchone()
+        if agent:
+            db.execute(
+                "UPDATE agents SET status = 'working', current_task = ? WHERE id = ?",
+                (f"[Project #{project_id}] {name}", agent['id'])
+            )
+            db.commit()
 
-        flash(f'Project created. Task file created in Team Inbox for {suggested_agent}.', 'success')
+        # Spawn the agent — fire and forget
+        dispatch_agent(project_id, name, description, priority, agent_name)
+
+        flash(f'Project #{project_id} created. {agent_name} is on it.', 'success')
         return redirect(url_for('projects_list'))
     return render_template('projects/form.html', project=None)
 
@@ -606,6 +667,34 @@ def projects_delete(id):
     db.commit()
     flash('Project deleted.', 'success')
     return redirect(url_for('projects_list'))
+
+
+@app.route('/projects/<int:id>/complete', methods=['POST'])
+def projects_complete(id):
+    db = get_db()
+    project = db.execute("SELECT * FROM projects WHERE id = ?", (id,)).fetchone()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+
+    # Mark project completed
+    db.execute(
+        "UPDATE projects SET status = 'completed' WHERE id = ?", (id,)
+    )
+
+    # Mark all open tasks on this project as done
+    db.execute(
+        "UPDATE project_tasks SET status = 'done', completed_at = datetime('now') WHERE project_id = ? AND status != 'done'",
+        (id,)
+    )
+
+    # Reset the agent that was working on it back to idle
+    db.execute(
+        "UPDATE agents SET status = 'idle', current_task = NULL WHERE current_task LIKE ?",
+        (f'[Project #{id}]%',)
+    )
+    db.commit()
+
+    return jsonify({'status': 'completed', 'project_id': id})
 
 
 # ─── Tasks ────────────────────────────────────────────────────────────────────
@@ -1114,6 +1203,99 @@ def find_best_contacts(website_url):
     return ranked[:2]
 
 
+def find_with_hunter(website_url):
+    """Query Hunter.io domain search. Returns list of dicts with email, name, title."""
+    api_key = os.environ.get('HUNTER_API_KEY', '')
+    if not api_key:
+        return []
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(website_url).netloc or urlparse('https://' + website_url).netloc
+        domain = domain.lstrip('www.')
+        r = http_requests.get(
+            'https://api.hunter.io/v2/domain-search',
+            params={'domain': domain, 'api_key': api_key, 'limit': 5},
+            timeout=10
+        )
+        if r.status_code != 200:
+            return []
+        data = r.json().get('data', {})
+        contacts = []
+        for e in data.get('emails', []):
+            if e.get('value'):
+                contacts.append({
+                    'email': e['value'].lower(),
+                    'name': ' '.join(filter(None, [e.get('first_name', ''), e.get('last_name', '')])),
+                    'title': e.get('position', '')
+                })
+        # Rank: named personal emails first
+        named   = [c for c in contacts if c['name']]
+        generic = [c for c in contacts if not c['name']]
+        return (named + generic)[:3]
+    except Exception:
+        return []
+
+
+def get_mx_host(domain):
+    """Return the highest-priority MX hostname for a domain, or None."""
+    try:
+        import dns.resolver
+        records = dns.resolver.resolve(domain, 'MX')
+        return str(sorted(records, key=lambda r: r.preference)[0].exchange).rstrip('.')
+    except Exception:
+        return None
+
+
+def smtp_verify(email, mx_host):
+    """SMTP handshake check — returns True if server accepts the address."""
+    try:
+        with smtplib.SMTP(timeout=8) as s:
+            s.connect(mx_host, 25)
+            s.ehlo('robertsoxygen.com')
+            s.mail('verify@robertsoxygen.com')
+            code, _ = s.rcpt(email)
+            s.quit()
+            return code == 250
+    except Exception:
+        return False
+
+
+def guess_emails(domain, mx_host):
+    """
+    Try common generic formats against the domain.
+    Verifies each via SMTP handshake. Returns up to 3 verified addresses.
+    Falls back to returning unverified generics if SMTP is blocked.
+    """
+    candidates = [
+        f'info@{domain}',
+        f'sales@{domain}',
+        f'contact@{domain}',
+        f'hello@{domain}',
+        f'office@{domain}',
+        f'inquiries@{domain}',
+    ]
+    if not mx_host:
+        return []
+
+    verified = []
+    smtp_blocked = False
+    for email in candidates:
+        result = smtp_verify(email, mx_host)
+        if result:
+            verified.append({'email': email, 'name': '', 'title': ''})
+            if len(verified) >= 3:
+                break
+        elif not verified and not smtp_blocked:
+            # If we get no 250s at all after first 2 tries, server likely blocks probing
+            smtp_blocked = True
+
+    # If SMTP is blocked (catch-all or firewall), return top generic unverified
+    if not verified and smtp_blocked:
+        return [{'email': candidates[0], 'name': '', 'title': ''}]
+
+    return verified
+
+
 @app.route('/ro/profiles/<int:prospect_id>/find-contacts', methods=['POST'])
 def ro_find_contacts(prospect_id):
     db = get_db()
@@ -1123,24 +1305,42 @@ def ro_find_contacts(prospect_id):
     if not prospect['website']:
         return jsonify({'error': 'No website on file for this prospect'}), 400
 
-    emails = find_best_contacts(prospect['website'])
-    if not emails:
-        return jsonify({'error': 'No email addresses found on the website'}), 404
+    # 1. Hunter.io
+    raw_contacts = find_with_hunter(prospect['website'])
+    source = 'hunter'
+
+    # 2. Website scraper
+    if not raw_contacts:
+        emails = find_best_contacts(prospect['website'])
+        raw_contacts = [{'email': e, 'name': '', 'title': ''} for e in emails]
+        source = 'scrape'
+
+    # 3. Email format guesser + SMTP verification
+    if not raw_contacts:
+        from urllib.parse import urlparse
+        parsed = urlparse(prospect['website'])
+        domain = (parsed.netloc or parsed.path).lstrip('www.')
+        mx_host = get_mx_host(domain)
+        raw_contacts = guess_emails(domain, mx_host)
+        source = 'guess'
+
+    if not raw_contacts:
+        return jsonify({'error': 'No email addresses found'}), 404
 
     saved = []
-    for email in emails:
-        # Don't duplicate
+    for c in raw_contacts:
+        email = c['email']
         existing = db.execute('SELECT id FROM ro_contacts WHERE prospect_id=? AND email=?', (prospect_id, email)).fetchone()
         if not existing:
             db.execute(
                 'INSERT INTO ro_contacts (prospect_id, name, title, email, is_suggested) VALUES (?, ?, ?, ?, 1)',
-                (prospect_id, '', '', email)
+                (prospect_id, c['name'], c['title'], email)
             )
             db.commit()
         contact = db.execute('SELECT * FROM ro_contacts WHERE prospect_id=? AND email=?', (prospect_id, email)).fetchone()
         saved.append({'id': contact['id'], 'email': email, 'name': contact['name'] or '', 'title': contact['title'] or ''})
 
-    return jsonify({'contacts': saved})
+    return jsonify({'contacts': saved, 'source': source})
 
 
 @app.route('/ro/contacts/<int:contact_id>/draft-email', methods=['POST'])
@@ -1162,7 +1362,7 @@ def ro_draft_email(contact_id):
 
     prompt = f"""Write a concise, professional cold outreach email from Roberts Oxygen to a prospect.
 
-Roberts Oxygen is an industrial gas supplier (oxygen, CO2, nitrogen, welding gases, and related products) serving businesses across MD, VA, DC, PA, and surrounding states.
+Roberts Oxygen is an industrial gas supplier (oxygen, CO2, nitrogen, welding gases, and related products) serving businesses across MD, VA, DC, PA, DE, NJ, NC, SC, GA, and FL — including locations in Jacksonville, Tampa, and Orlando.
 
 Prospect details:
 - Business: {prospect['business_name']}
