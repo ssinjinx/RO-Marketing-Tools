@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %} — Roberts Oxygen{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Roberts Oxygen</h1>
+</div>
+
+<div class="info-grid">
+    <div class="info-card">
+        <h2>Company Overview</h2>
+        <p>Roberts Oxygen is an industrial gas and welding supply company serving the Mid-Atlantic and Southeast United States. Founded and family-operated, they distribute compressed gases, welding equipment, bulk cryogenic systems, dry ice, and specialty lab gases to a wide range of industrial, commercial, and healthcare customers across 57 locations.</p>
+    </div>
+
+    <div class="info-card">
+        <h2>Service States</h2>
+        <div class="states-list">
+            {% for state in ['DE', 'FL', 'GA', 'MD', 'NJ', 'NC', 'PA', 'SC', 'VA'] %}
+                <span class="state-pill">{{ state }}</span>
+            {% endfor %}
+        </div>
+        <p style="margin-top:0.75rem;">57 locations across the Mid-Atlantic and Southeast.</p>
+    </div>
+
+    <div class="info-card">
+        <h2>Products &amp; Services</h2>
+        <ul>
+            <li>Compressed gases (O2, N2, Ar, CO2, He)</li>
+            <li>Acetylene &amp; fuel gases</li>
+            <li>Welding supplies &amp; equipment</li>
+            <li>Bulk cryogenic systems (LN2, LOX, LAr)</li>
+            <li>Medical gases (O2, N2, CO2)</li>
+            <li>Dry ice (blocks &amp; pellets)</li>
+            <li>Specialty &amp; high-purity gases</li>
+            <li>Laser gas delivery systems</li>
+            <li>Lab &amp; scientific gases</li>
+            <li>Gas cylinder rental &amp; exchange</li>
+            <li>Safety equipment &amp; PPE</li>
+            <li>On-site gas generation systems</li>
+        </ul>
+    </div>
+
+    <div class="info-card">
+        <h2>Industries Served</h2>
+        <ul>
+            <li>Metal fabrication</li>
+            <li>Breweries &amp; craft beverage</li>
+            <li>Restaurants &amp; bars</li>
+            <li>Hospitals &amp; healthcare</li>
+            <li>HVAC contractors</li>
+            <li>Biotech &amp; pharmaceutical</li>
+            <li>Laser cutting shops</li>
+            <li>Auto body &amp; collision</li>
+            <li>Construction</li>
+            <li>Research laboratories</li>
+            <li>Food processing</li>
+            <li>Universities</li>
+        </ul>
+    </div>
+
+    <div class="info-card">
+        <h2>Ideal Contact Titles</h2>
+        <ul>
+            <li>Plant Manager</li>
+            <li>Operations Manager</li>
+            <li>Purchasing / Procurement Manager</li>
+            <li>Head Brewer</li>
+            <li>Lab Manager</li>
+            <li>Materials Manager</li>
+            <li>Welding Supervisor</li>
+            <li>Biomedical Engineering Director</li>
+            <li>Shop Owner</li>
+            <li>General Manager</li>
+            <li>Safety Officer</li>
+            <li>Engineering Manager</li>
+        </ul>
+    </div>
+
+    <div class="info-card">
+        <h2>Competitive Advantages</h2>
+        <p>Local, family-owned with 57 convenient locations across the region. Faster delivery and more personalized service than national chains. Broad product portfolio means one vendor covers gases, welding supplies, dry ice, and bulk systems. Dedicated account reps who understand regional industrial needs.</p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Customer Profiles</h1>
+    <a href="{{ url_for('ro_profile_add') }}" class="btn-primary">+ Add Prospect</a>
+</div>
+
+{% if prospects %}
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th>Business</th>
+            <th>Industry</th>
+            <th>Location</th>
+            <th>RO Products</th>
+            <th>Status</th>
+            <th>Added</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in prospects %}
+        <tr>
+            <td>
+                <a href="{{ url_for('ro_profile_view', prospect_id=p.id) }}" class="link-primary text-bold">
+                    {{ p.business_name }}
+                </a>
+                {% if p.phone %}<div class="text-muted" class="text-xs">{{ p.phone }}</div>{% endif %}
+            </td>
+            <td>{{ p.industry or '—' }}</td>
+            <td>{{ p.city or '' }}{% if p.city and p.state %}, {% endif %}{{ p.state or '' }}</td>
+            <td class="text-muted text-xs">{{ p.ro_products or '—' }}</td>
+            <td><span class="badge badge-{{ p.status }}">{{ p.status | replace('_', ' ') }}</span></td>
+            <td class="text-muted" class="text-xs">{{ p.created_at[:10] if p.created_at else '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('ro_profile_view', prospect_id=p.id) }}" class="btn-secondary btn-sm">View</a>
+                <form method="POST" action="{{ url_for('ro_profile_delete', prospect_id=p.id) }}"
+                      onsubmit="return confirm('Delete this prospect?')">
+                    <button type="submit" class="btn-danger btn-sm">Del</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">
+    No prospects yet. Use <a href="{{ url_for('ro_search') }}">Prospect Search</a> to find businesses or <a href="{{ url_for('ro_profile_add') }}">add one manually</a>.
+</div>
+{% endif %}
+{% endblock %}

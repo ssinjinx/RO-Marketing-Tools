@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Projects</h1>
+    <a href="{{ url_for('projects_new') }}" class="btn-primary">+ New Project</a>
+</div>
+
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Target Date</th>
+            <th>Tags</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for project in projects %}
+        <tr>
+            <td><a href="{{ url_for('projects_view', id=project.id) }}">{{ project.name }}</a></td>
+            <td><span class="badge badge-{{ project.status }}">{{ project.status }}</span></td>
+            <td><span class="badge badge-{{ project.priority }}">{{ project.priority }}</span></td>
+            <td>{{ project.target_date or '—' }}</td>
+            <td>{{ project.tags or '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('projects_edit', id=project.id) }}" class="btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{{ url_for('projects_delete', id=project.id) }}" class="form-inline-block">
+                    <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Delete this project and all its tasks?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-muted empty-cell">No projects yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

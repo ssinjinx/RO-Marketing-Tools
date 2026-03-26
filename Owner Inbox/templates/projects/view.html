@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ project.name }}</h1>
+    <div class="actions">
+        <a href="{{ url_for('projects_edit', id=project.id) }}" class="btn-secondary">Edit</a>
+        <form method="post" action="{{ url_for('projects_delete', id=project.id) }}" class="form-inline">
+            <button type="submit" class="btn-danger" onclick="return confirm('Delete this project and all its tasks?')">Delete</button>
+        </form>
+        <a href="{{ url_for('projects_list') }}" class="btn-secondary">Back</a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Status</label>
+            <p><span class="badge badge-{{ project.status }}">{{ project.status }}</span></p>
+        </div>
+        <div class="detail-field">
+            <label>Priority</label>
+            <p><span class="badge badge-{{ project.priority }}">{{ project.priority }}</span></p>
+        </div>
+        <div class="detail-field">
+            <label>Start Date</label>
+            <p>{{ project.start_date or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Target Date</label>
+            <p>{{ project.target_date or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Tags</label>
+            <p>{{ project.tags or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Created</label>
+            <p>{{ project.created_at or '—' }}</p>
+        </div>
+    </div>
+    {% if project.description %}
+    <div class="detail-field detail-field-mt">
+        <label>Description</label>
+        <p class="text-pre-wrap">{{ project.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section-header">
+    <h2>Tasks ({{ tasks|length }})</h2>
+    <a href="{{ url_for('tasks_new', id=project.id) }}" class="btn-primary btn-sm">+ Add Task</a>
+</div>
+
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Assigned To</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Due Date</th>
+            <th>Completed</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks %}
+        <tr>
+            <td>{{ task.title }}</td>
+            <td>{{ task.assigned_to or '—' }}</td>
+            <td><span class="badge badge-{{ task.status.replace('-', '-') }}">{{ task.status }}</span></td>
+            <td><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></td>
+            <td>{{ task.due_date or '—' }}</td>
+            <td>{{ task.completed_at[:10] if task.completed_at else '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('tasks_edit', project_id=project.id, task_id=task.id) }}" class="btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{{ url_for('tasks_delete', project_id=project.id, task_id=task.id) }}" class="form-inline">
+                    <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Delete this task?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-muted empty-cell">No tasks yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

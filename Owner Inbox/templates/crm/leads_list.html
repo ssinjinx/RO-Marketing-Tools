@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Leads</h1>
+    <a href="{{ url_for('leads_new') }}" class="btn-primary">+ New Lead</a>
+</div>
+
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th>Contact</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Value</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lead in leads %}
+        <tr>
+            <td>
+                {% if lead.first_name %}
+                    <a href="{{ url_for('contacts_view', id=lead.contact_id) }}">{{ lead.first_name }} {{ lead.last_name or '' }}</a>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td>{{ lead.source or '—' }}</td>
+            <td><span class="badge badge-{{ lead.status }}">{{ lead.status }}</span></td>
+            <td>{{ '$%.2f'|format(lead.value) if lead.value else '—' }}</td>
+            <td>{{ lead.created_at[:10] if lead.created_at else '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('leads_edit', id=lead.id) }}" class="btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{{ url_for('leads_delete', id=lead.id) }}" class="form-inline">
+                    <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Delete this lead?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-muted empty-cell">No leads yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ 'Edit Project' if project else 'New Project' }}</h1>
+    <a href="{{ url_for('projects_list') }}" class="btn-secondary">Back</a>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        <div class="form-group">
+            <label for="name">Name *</label>
+            <input type="text" id="name" name="name" required value="{{ project.name if project else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description">{{ project.description if project else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                {% for s in ['active', 'on-hold', 'completed', 'archived'] %}
+                <option value="{{ s }}" {% if project and project.status == s %}selected{% elif not project and s == 'active' %}selected{% endif %}>
+                    {{ s|capitalize }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="priority">Priority</label>
+            <select id="priority" name="priority">
+                {% for p in ['low', 'medium', 'high'] %}
+                <option value="{{ p }}" {% if project and project.priority == p %}selected{% elif not project and p == 'medium' %}selected{% endif %}>
+                    {{ p|capitalize }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" value="{{ project.start_date if project and project.start_date else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="target_date">Target Date</label>
+            <input type="date" id="target_date" name="target_date" value="{{ project.target_date if project and project.target_date else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="tags">Tags <span class="text-muted">(comma-separated)</span></label>
+            <input type="text" id="tags" name="tags" value="{{ project.tags if project else '' }}">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ 'Save Changes' if project else 'Create Project' }}</button>
+            <a href="{{ url_for('projects_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

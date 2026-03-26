@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ article.title }}</h1>
+    <div class="actions">
+        <a href="{{ url_for('kb_edit', id=article.id) }}" class="btn-secondary">Edit</a>
+        <form method="post" action="{{ url_for('kb_delete', id=article.id) }}" class="form-inline-block">
+            <button type="submit" class="btn-danger" onclick="return confirm('Delete this article?')">Delete</button>
+        </form>
+        <a href="{{ url_for('kb_list') }}" class="btn-secondary">Back</a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Category</label>
+            <p>{{ article.category or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Tags</label>
+            <p>{{ article.tags or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Created</label>
+            <p>{{ article.created_at or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Updated</label>
+            <p>{{ article.updated_at or '—' }}</p>
+        </div>
+    </div>
+    {% if article.content %}
+    <div class="detail-field detail-field-mt">
+        <label>Content</label>
+        <p class="text-pre-wrap">{{ article.content }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

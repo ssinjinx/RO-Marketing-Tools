@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Deals</h1>
+    <a href="{{ url_for('deals_new') }}" class="btn-primary">+ New Deal</a>
+</div>
+
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Contact</th>
+            <th>Stage</th>
+            <th>Value</th>
+            <th>Close Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for deal in deals %}
+        <tr>
+            <td>{{ deal.title }}</td>
+            <td>
+                {% if deal.first_name %}
+                    <a href="{{ url_for('contacts_view', id=deal.contact_id) }}">{{ deal.first_name }} {{ deal.last_name or '' }}</a>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td>{{ deal.stage or '—' }}</td>
+            <td>{{ '$%.2f'|format(deal.value) if deal.value else '—' }}</td>
+            <td>{{ deal.close_date or '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('deals_edit', id=deal.id) }}" class="btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{{ url_for('deals_delete', id=deal.id) }}" class="form-inline">
+                    <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Delete this deal?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-muted empty-cell">No deals yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

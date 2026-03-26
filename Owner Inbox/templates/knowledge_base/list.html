@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Knowledge Base</h1>
+    <a href="{{ url_for('kb_new') }}" class="btn-primary">+ New Article</a>
+</div>
+
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Tags</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for article in articles %}
+        <tr>
+            <td><a href="{{ url_for('kb_view', id=article.id) }}">{{ article.title }}</a></td>
+            <td>{{ article.category or '—' }}</td>
+            <td>{{ article.tags or '—' }}</td>
+            <td>{{ article.created_at[:10] if article.created_at else '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('kb_edit', id=article.id) }}" class="btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{{ url_for('kb_delete', id=article.id) }}" class="form-inline-block">
+                    <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Delete this article?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted empty-cell">No articles yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

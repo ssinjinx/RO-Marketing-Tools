@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RO Marketing Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav>
+    <a href="{{ url_for('index') }}" class="nav-brand">Owner Inbox</a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-input">
+    <label for="nav-toggle" class="nav-toggle-label">&#9776;</label>
+    <div class="nav-links">
+        <a href="{{ url_for('index') }}">Dashboard</a>
+        <a href="{{ url_for('files_list') }}">Files</a>
+        <a href="{{ url_for('kb_list') }}">Knowledge Base</a>
+        <span class="nav-group">
+            <span class="nav-group-label">CRM &#9662;</span>
+            <div class="dropdown">
+                <a href="{{ url_for('contacts_list') }}">Contacts</a>
+                <a href="{{ url_for('leads_list') }}">Leads</a>
+                <a href="{{ url_for('deals_list') }}">Deals</a>
+                <a href="{{ url_for('pipeline') }}">Pipeline</a>
+            </div>
+        </span>
+        <span class="nav-group">
+            <span class="nav-group-label">RO Leads &#9662;</span>
+            <div class="dropdown">
+                <a href="{{ url_for('ro_info') }}">Info</a>
+                <a href="{{ url_for('ro_search') }}">Search</a>
+                <a href="{{ url_for('ro_profiles') }}">Profiles</a>
+                <a href="{{ url_for('ro_contacts') }}">Contacts</a>
+                <a href="{{ url_for('ro_pipeline') }}">Pipeline</a>
+            </div>
+        </span>
+        <a href="{{ url_for('projects_list') }}">Projects</a>
+    </div>
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

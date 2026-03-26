@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Sales Pipeline</h1>
+    <a href="{{ url_for('deals_new') }}" class="btn-primary">+ New Deal</a>
+</div>
+
+<div class="pipeline-board">
+    {% for stage in stages %}
+    {% set stage_deals = deals_by_stage.get(stage.name, []) %}
+    <div class="pipeline-column">
+        <h3>{{ stage.name }} <span class="text-muted">({{ stage_deals|length }})</span></h3>
+        {% if stage_deals %}
+            {% for deal in stage_deals %}
+            <div class="deal-card">
+                <div class="deal-title">{{ deal.title }}</div>
+                {% if deal.first_name %}
+                <div class="deal-contact">{{ deal.first_name }} {{ deal.last_name or '' }}</div>
+                {% endif %}
+                {% if deal.value %}
+                <div class="deal-value">${{ '%.2f'|format(deal.value) }}</div>
+                {% endif %}
+                {% if deal.close_date %}
+                <div class="text-muted text-sm mt-tight">Close: {{ deal.close_date }}</div>
+                {% endif %}
+                <div class="actions mt-action">
+                    <a href="{{ url_for('deals_edit', id=deal.id) }}" class="btn-secondary btn-sm">Edit</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-column">No deals</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

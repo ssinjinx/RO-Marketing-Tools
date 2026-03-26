@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %} — Prospect Search{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Prospect Search</h1>
+</div>
+
+<form class="search-form" method="POST" action="{{ url_for('search') }}">
+    <div class="form-group">
+        <label>Area (State or City)</label>
+        <select name="area">
+            <optgroup label="States">
+                {% for state in service_states %}
+                    <option value="{{ state }}" {% if area == state %}selected{% endif %}>{{ state }}</option>
+                {% endfor %}
+            </optgroup>
+            <optgroup label="Major Cities">
+                {% for city in service_cities %}
+                    <option value="{{ city }}" {% if area == city %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+            </optgroup>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Business Type</label>
+        <input type="text" name="business_type" value="{{ business_type }}"
+               placeholder="e.g. brewery, metal fabricator, restaurant" required>
+    </div>
+    <div style="padding-bottom:0.05rem;">
+        <button type="submit" class="btn-primary">Search</button>
+    </div>
+</form>
+
+{% if results is not none %}
+    {% if results|length == 0 %}
+        <div class="empty-state">No results found. Try a different search term or area.</div>
+    {% elif results[0].get('error') %}
+        <div class="flash-error">Search error: {{ results[0].error }}</div>
+    {% else %}
+        <p class="text-muted" style="margin-bottom:1rem;">
+            Showing {{ results|length }} results for "<strong>{{ business_type }}</strong>" near <strong>{{ area }}</strong>
+        </p>
+        <div class="results-grid">
+            {% for r in results %}
+            <div class="result-card">
+                <div class="result-title">
+                    <a href="{{ r.url }}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">
+                        {{ r.title }}
+                    </a>
+                </div>
+                {% if r.display_url %}
+                    <div class="result-url">{{ r.display_url }}</div>
+                {% endif %}
+                {% if r.snippet %}
+                    <div class="result-snippet">{{ r.snippet }}</div>
+                {% endif %}
+                <div class="result-actions">
+                    <form method="POST" action="{{ url_for('save_search_result') }}" style="display:contents;">
+                        <input type="hidden" name="business_name" value="{{ r.title }}">
+                        <input type="hidden" name="website" value="{{ r.url }}">
+                        <input type="hidden" name="snippet" value="{{ r.snippet }}">
+                        <input type="hidden" name="industry" value="{{ business_type }}">
+                        <input type="hidden" name="area" value="{{ area }}">
+                        <input type="hidden" name="address" value="{{ r.address }}">
+                        <input type="hidden" name="phone" value="{{ r.phone }}">
+                        <input type="hidden" name="category" value="{{ r.category }}">
+                        <button type="submit" class="btn-success btn-sm">Save to Database</button>
+                    </form>
+                    {% if r.url %}
+                        <a href="{{ r.url }}" target="_blank" rel="noopener" class="btn-secondary btn-sm">Visit</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endif %}
+{% endblock %}

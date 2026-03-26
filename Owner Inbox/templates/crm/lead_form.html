@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ 'Edit Lead' if lead else 'New Lead' }}</h1>
+    <a href="{{ url_for('leads_list') }}" class="btn-secondary">Back</a>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        <div class="form-group">
+            <label for="contact_id">Contact</label>
+            <select id="contact_id" name="contact_id">
+                <option value="">— None —</option>
+                {% for contact in contacts %}
+                <option value="{{ contact.id }}" {% if lead and lead.contact_id == contact.id %}selected{% endif %}>
+                    {{ contact.first_name }} {{ contact.last_name or '' }}{% if contact.company %} ({{ contact.company }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="source">Source</label>
+            <input type="text" id="source" name="source" value="{{ lead.source if lead else '' }}" placeholder="e.g. Referral, Website, Event">
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                {% for s in ['new', 'contacted', 'qualified', 'unqualified'] %}
+                <option value="{{ s }}" {% if lead and lead.status == s %}selected{% elif not lead and s == 'new' %}selected{% endif %}>
+                    {{ s|capitalize }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="value">Value ($)</label>
+            <input type="number" id="value" name="value" step="0.01" min="0" value="{{ lead.value if lead and lead.value else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes">{{ lead.notes if lead else '' }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ 'Save Changes' if lead else 'Create Lead' }}</button>
+            <a href="{{ url_for('leads_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

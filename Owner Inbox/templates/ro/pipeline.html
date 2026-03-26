@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Pipeline</h1>
+    <a href="{{ url_for('ro_profile_add') }}" class="btn-primary">+ Add Prospect</a>
+</div>
+
+<div class="pipeline-board">
+
+    {% set col_labels = {
+        'new': 'New',
+        'contacted': 'Contacted',
+        'qualified': 'Qualified',
+        'not_a_fit': 'Not a Fit'
+    } %}
+
+    {% for status_key, label in col_labels.items() %}
+    <div class="pipeline-column">
+        <h3>
+            {{ label }}
+            <span class="col-count">{{ columns[status_key]|length }}</span>
+        </h3>
+
+        {% if columns[status_key] %}
+            {% for p in columns[status_key] %}
+            <div class="prospect-card">
+                <div class="card-title">
+                    <a href="{{ url_for('ro_profile_view', prospect_id=p.id) }}"
+                       class="link-dark">{{ p.business_name }}</a>
+                </div>
+                {% if p.industry %}
+                    <div class="card-meta">{{ p.industry }}</div>
+                {% endif %}
+                {% if p.city or p.state %}
+                    <div class="card-meta">{{ p.city or '' }}{% if p.city and p.state %}, {% endif %}{{ p.state or '' }}</div>
+                {% endif %}
+                {% if p.ro_products %}
+                    <div class="card-products">{{ p.ro_products }}</div>
+                {% endif %}
+                <div class="mt-action">
+                    <form method="POST" action="{{ url_for('ro_pipeline_move', prospect_id=p.id) }}" class="form-inline-flex gap-1 flex-wrap">
+                        {% for s_key, s_label in col_labels.items() %}
+                            {% if s_key != status_key %}
+                                <button type="submit" name="status" value="{{ s_key }}"
+                                        class="btn-secondary btn-sm text-xs">
+                                    → {{ s_label }}
+                                </button>
+                            {% endif %}
+                        {% endfor %}
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-column">No prospects</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}

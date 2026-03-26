@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Team</h1>
+</div>
+
+<div class="agent-grid">
+{% for agent in agents %}
+<div class="agent-card">
+    <div>
+        <span class="status-badge badge-{{ agent['status'] }}">{{ agent['status'] }}</span>
+    </div>
+    <h2>{{ agent['name'] }}</h2>
+    <div class="agent-role">{{ agent['role'] }}</div>
+
+    {% if agent['current_task'] %}
+    <div>
+        <div class="meta mb-0-2">Current Task:</div>
+        <div class="current-task">{{ agent['current_task'] }}</div>
+    </div>
+    {% endif %}
+
+    <div class="meta">
+        <strong>Skills:</strong> {{ agent['skills'] or '—' }}
+    </div>
+    <details>
+        <summary>Send Task &#9660;</summary>
+        <form class="task-form" method="post" action="{{ url_for('agent_task', id=agent['id']) }}">
+            <textarea name="task" rows="3" placeholder="Describe task..."></textarea>
+            <button type="submit">Assign Task</button>
+        </form>
+    </details>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

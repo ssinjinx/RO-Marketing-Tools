@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>Dashboard</h1>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="count">{{ counts.files }}</div>
+        <div class="label">Files in Catalog</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.articles }}</div>
+        <div class="label">Knowledge Base Articles</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.contacts }}</div>
+        <div class="label">CRM Contacts</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.deals }}</div>
+        <div class="label">Deals</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.active_projects }}</div>
+        <div class="label">Active Projects</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.open_tasks }}</div>
+        <div class="label">Open Tasks</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.working_agents }}</div>
+        <div class="label">Active Agents</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.ro_prospects }}</div>
+        <div class="label">Total Prospects</div>
+    </div>
+    <div class="stat-card">
+        <div class="count">{{ counts.ro_new_prospects }}</div>
+        <div class="label">New Prospects</div>
+    </div>
+</div>
+
+<h2 class="section-title">Team</h2>
+<div class="agent-grid">
+{% for agent in agents %}
+<div class="agent-card">
+    <div>
+        <span class="badge badge-{{ agent['status'] }}">{{ agent['status'] }}</span>
+    </div>
+    <h2>{{ agent['name'] }}</h2>
+    <div class="agent-role">{{ agent['role'] }}</div>
+
+    {% if agent['current_task'] %}
+    <div>
+        <div class="meta mb-4">Current Task:</div>
+        <div class="current-task">{{ agent['current_task'] }}</div>
+    </div>
+    {% endif %}
+
+    <div class="meta">
+        <strong>Skills:</strong> {{ agent['skills'] or '—' }}
+    </div>
+    <div class="meta">
+        <strong>Model:</strong> {{ agent['model'] or '—' }}
+    </div>
+    <details>
+        <summary>Send Task &#9660;</summary>
+        <form class="task-form" method="post" action="{{ url_for('agent_task', id=agent['id']) }}">
+            <textarea name="task" rows="3" placeholder="Describe task..."></textarea>
+            <button type="submit">Assign Task</button>
+        </form>
+    </details>
+</div>
+{% endfor %}
+</div>
+
+
+{% endblock %}

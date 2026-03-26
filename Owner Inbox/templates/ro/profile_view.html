@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ prospect.business_name }}</h1>
+    <div class="actions">
+        <span class="badge badge-{{ prospect.status }}">{{ prospect.status | replace('_', ' ') }}</span>
+        <a href="{{ url_for('ro_profiles') }}" class="btn-secondary">Back to Profiles</a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <form method="POST" action="{{ url_for('ro_profile_edit', prospect_id=prospect.id) }}">
+        <div class="detail-grid">
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" name="business_name" value="{{ prospect.business_name or '' }}" required>
+            </div>
+            <div class="form-group">
+                <label>Industry</label>
+                <input type="text" name="industry" value="{{ prospect.industry or '' }}" placeholder="e.g. brewery, metal fabricator">
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" name="phone" value="{{ prospect.phone or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Website</label>
+                <input type="text" name="website" value="{{ prospect.website or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" name="address" value="{{ prospect.address or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status">
+                    {% for s in status_options %}
+                        <option value="{{ s }}" {% if prospect.status == s %}selected{% endif %}>
+                            {{ s | replace('_', ' ') | title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" name="city" value="{{ prospect.city or '' }}">
+            </div>
+            <div class="form-group">
+                <label>State</label>
+                <input type="text" name="state" value="{{ prospect.state or '' }}" maxlength="2" class="text-uppercase">
+            </div>
+            <div class="form-group">
+                <label>RO Products</label>
+                <input type="text" name="ro_products" value="{{ prospect.ro_products or '' }}" placeholder="CO2 cylinders, Nitrogen, ...">
+            </div>
+            <div class="form-group">
+                <label>Suggested Contact Title</label>
+                <input type="text" name="suggested_contact_title" value="{{ prospect.suggested_contact_title or '' }}">
+            </div>
+        </div>
+        <div class="form-group mt-2">
+            <label>Notes</label>
+            <textarea name="notes">{{ prospect.notes or '' }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <a href="{{ url_for('ro_profile_view', prospect_id=prospect.id) }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% if prospect.website %}
+<p class="text-muted mb-1">
+    Website: <a href="{{ prospect.website }}" target="_blank" rel="noopener">{{ prospect.website }}</a>
+</p>
+{% endif %}
+
+<!-- Contacts Section -->
+<div class="section-header">
+    <h2>Contacts ({{ contacts|length }})</h2>
+    <div class="actions">
+        {% if prospect.website %}
+        <button id="findContactsBtn" class="btn-primary btn-sm" onclick="findContacts({{ prospect.id }})">
+            Find Contacts
+        </button>
+        {% endif %}
+        <a href="{{ url_for('ro_contact_add') }}?prospect_id={{ prospect.id }}" class="btn-secondary btn-sm">+ Add Manual</a>
+    </div>
+</div>
+
+<div id="findContactsStatus" style="display:none;" class="flash flash-success mb-1"></div>
+<div id="findContactsError" style="display:none;" class="flash flash-error mb-1"></div>
+
+<div id="contactsTable">
+{% if contacts %}
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr>
+            <th style="width:36px;"></th>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>LinkedIn</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in contacts %}
+        <tr id="contact-row-{{ c.id }}">
+            <td>
+                {% if c.is_suggested %}
+                <input type="checkbox" class="contact-check" id="chk-{{ c.id }}"
+                       data-contact-id="{{ c.id }}"
+                       data-email="{{ c.email or '' }}"
+                       data-name="{{ c.name or '' }}"
+                       onchange="toggleDraftBtn(this)"
+                       style="width:18px;height:18px;cursor:pointer;accent-color:var(--primary);">
+                {% endif %}
+            </td>
+            <td>{{ c.name or '—' }}</td>
+            <td>{{ c.title or '—' }}</td>
+            <td>{% if c.email %}<a href="mailto:{{ c.email }}">{{ c.email }}</a>{% else %}—{% endif %}</td>
+            <td>{{ c.phone or '—' }}</td>
+            <td>{% if c.linkedin_url %}<a href="{{ c.linkedin_url }}" target="_blank" rel="noopener">LinkedIn</a>{% else %}—{% endif %}</td>
+            <td class="actions">
+                <button id="draft-btn-{{ c.id }}" class="btn-primary btn-sm"
+                        style="display:none;"
+                        onclick="draftEmail({{ c.id }}, '{{ c.email }}', '{{ c.name or '' }}')">
+                    ✉ Draft Email
+                </button>
+                <a href="{{ url_for('ro_contact_edit', contact_id=c.id) }}" class="btn-secondary btn-sm">Edit</a>
+                <form method="POST" action="{{ url_for('ro_contact_delete', contact_id=c.id) }}"
+                      onsubmit="return confirm('Delete this contact?')" style="display:inline;">
+                    <button type="submit" class="btn-danger btn-sm">Del</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<p class="text-muted" id="noContactsMsg">No contacts yet.{% if prospect.website %} Click "Find Contacts" to auto-scrape.{% endif %}</p>
+{% endif %}
+</div>
+
+<!-- Draft Email Panel -->
+<div id="draftPanel" style="display:none; margin-top:20px;">
+    <div class="detail-card" style="border-left: 3px solid var(--accent);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-size:1rem; font-weight:700;">✉ Email Draft</h3>
+            <span id="draftFor" style="font-size:0.85rem; color:var(--text-muted);"></span>
+        </div>
+        <div id="draftLoading" style="display:none; color:var(--text-muted); font-size:0.9rem; padding:12px 0;">
+            Generating draft...
+        </div>
+        <div id="draftError" style="display:none;" class="flash flash-error"></div>
+        <textarea id="draftContent" style="display:none; width:100%; min-height:240px; padding:14px;
+            border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:inherit;
+            font-size:0.9rem; line-height:1.6; resize:vertical; background:var(--bg);" readonly></textarea>
+        <div id="draftActions" style="display:none; margin-top:12px; display:none;">
+            <button class="btn-secondary btn-sm" onclick="copyDraft()">Copy</button>
+            <button class="btn-secondary btn-sm" onclick="closeDraft()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function findContacts(prospectId) {
+    const btn = document.getElementById('findContactsBtn');
+    const statusEl = document.getElementById('findContactsStatus');
+    const errorEl = document.getElementById('findContactsError');
+    statusEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Searching…';
+
+    try {
+        const res = await fetch(`/ro/profiles/${prospectId}/find-contacts`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.error) {
+            errorEl.textContent = data.error;
+            errorEl.style.display = 'block';
+        } else {
+            statusEl.textContent = `Found ${data.contacts.length} contact(s). Page will reload.`;
+            statusEl.style.display = 'block';
+            setTimeout(() => location.reload(), 1200);
+        }
+    } catch(e) {
+        errorEl.textContent = 'Request failed. Try again.';
+        errorEl.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Find Contacts';
+}
+
+function toggleDraftBtn(checkbox) {
+    const contactId = checkbox.dataset.contactId;
+    const btn = document.getElementById(`draft-btn-${contactId}`);
+    btn.style.display = checkbox.checked ? 'inline-flex' : 'none';
+    if (!checkbox.checked) {
+        closeDraft();
+    }
+}
+
+async function draftEmail(contactId, email, name) {
+    const panel = document.getElementById('draftPanel');
+    const loading = document.getElementById('draftLoading');
+    const content = document.getElementById('draftContent');
+    const errorEl = document.getElementById('draftError');
+    const actions = document.getElementById('draftActions');
+    const draftFor = document.getElementById('draftFor');
+
+    panel.style.display = 'block';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    errorEl.style.display = 'none';
+    actions.style.display = 'none';
+    draftFor.textContent = name ? `${name} <${email}>` : email;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+        const res = await fetch(`/ro/contacts/${contactId}/draft-email`, { method: 'POST' });
+        const data = await res.json();
+        loading.style.display = 'none';
+
+        if (data.error) {
+            errorEl.textContent = data.error;
+            errorEl.style.display = 'block';
+        } else {
+            content.value = data.draft;
+            content.style.display = 'block';
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+        }
+    } catch(e) {
+        loading.style.display = 'none';
+        errorEl.textContent = 'Request failed.';
+        errorEl.style.display = 'block';
+    }
+}
+
+function copyDraft() {
+    const content = document.getElementById('draftContent');
+    navigator.clipboard.writeText(content.value).then(() => {
+        const btn = event.target;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+}
+
+function closeDraft() {
+    document.getElementById('draftPanel').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Inbox — Locked</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+    .lock-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px 40px; text-align: center; width: 320px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .lock-icon { font-size: 48px; margin-bottom: 16px; }
+    .lock-box h1 { font-size: 1.4rem; margin-bottom: 8px; color: var(--text); }
+    .lock-box p { color: #64748b; margin-bottom: 24px; font-size: 0.95rem; }
+    .lock-box input[type=password] { width: 100%; padding: 12px 16px; font-size: 1.5rem; letter-spacing: 8px; text-align: center; border: 2px solid var(--border); border-radius: 8px; margin-bottom: 16px; outline: none; }
+    .lock-box input[type=password]:focus { border-color: var(--primary); }
+    .lock-box button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+    .lock-box button:hover { opacity: 0.9; }
+    .error { color: #dc2626; font-size: 0.9rem; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <h1>Owner Inbox</h1>
+    <p>Enter your PIN to continue</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST" action="/unlock">
+      <input type="password" name="pin" placeholder="••••" maxlength="10" autofocus>
+      <button type="submit">Unlock</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ 'Edit Contact' if contact else 'New Contact' }}</h1>
+    <a href="{{ url_for('contacts_list') }}" class="btn-secondary">Back</a>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        <div class="form-group">
+            <label for="first_name">First Name *</label>
+            <input type="text" id="first_name" name="first_name" required value="{{ contact.first_name if contact else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" value="{{ contact.last_name if contact else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="{{ contact.email if contact else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone" value="{{ contact.phone if contact else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="company">Company</label>
+            <input type="text" id="company" name="company" value="{{ contact.company if contact else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="role">Role</label>
+            <input type="text" id="role" name="role" value="{{ contact.role if contact else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes">{{ contact.notes if contact else '' }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ 'Save Changes' if contact else 'Create Contact' }}</button>
+            <a href="{{ url_for('contacts_list') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

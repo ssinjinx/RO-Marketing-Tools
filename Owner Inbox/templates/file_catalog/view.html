@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ file.name }}</h1>
+    <div class="actions">
+        <a href="{{ url_for('files_edit', id=file.id) }}" class="btn-secondary">Edit</a>
+        <form method="post" action="{{ url_for('files_delete', id=file.id) }}" class="form-inline">
+            <button type="submit" class="btn-danger" onclick="return confirm('Delete this file?')">Delete</button>
+        </form>
+        <a href="{{ url_for('files_list') }}" class="btn-secondary">Back</a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Name</label>
+            <p>{{ file.name }}</p>
+        </div>
+        <div class="detail-field">
+            <label>File Path</label>
+            <p>{{ file.file_path }}</p>
+        </div>
+        <div class="detail-field">
+            <label>File Type</label>
+            <p>{{ file.file_type or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Tags</label>
+            <p>{{ file.tags or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Created</label>
+            <p>{{ file.created_at or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Updated</label>
+            <p>{{ file.updated_at or '—' }}</p>
+        </div>
+    </div>
+    {% if file.description %}
+    <div class="detail-field detail-field-mt">
+        <label>Description</label>
+        <p class="text-pre-wrap">{{ file.description }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

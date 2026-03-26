@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ contact.first_name }} {{ contact.last_name or '' }}</h1>
+    <div class="actions">
+        <a href="{{ url_for('contacts_edit', id=contact.id) }}" class="btn-secondary">Edit</a>
+        <form method="post" action="{{ url_for('contacts_delete', id=contact.id) }}" class="form-inline">
+            <button type="submit" class="btn-danger" onclick="return confirm('Delete this contact?')">Delete</button>
+        </form>
+        <a href="{{ url_for('contacts_list') }}" class="btn-secondary">Back</a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Email</label>
+            <p>{{ contact.email or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Phone</label>
+            <p>{{ contact.phone or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Company</label>
+            <p>{{ contact.company or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Role</label>
+            <p>{{ contact.role or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Created</label>
+            <p>{{ contact.created_at or '—' }}</p>
+        </div>
+        <div class="detail-field">
+            <label>Updated</label>
+            <p>{{ contact.updated_at or '—' }}</p>
+        </div>
+    </div>
+    {% if contact.notes %}
+    <div class="detail-field detail-field-mt">
+        <label>Notes</label>
+        <p class="text-pre-wrap">{{ contact.notes }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section-header">
+    <h2>Linked Leads</h2>
+    <a href="{{ url_for('leads_new') }}" class="btn-secondary btn-sm">+ Add Lead</a>
+</div>
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr><th>Source</th><th>Status</th><th>Value</th><th>Created</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+        {% for lead in leads %}
+        <tr>
+            <td>{{ lead.source or '—' }}</td>
+            <td><span class="badge badge-{{ lead.status }}">{{ lead.status }}</span></td>
+            <td>{{ '$%.2f'|format(lead.value) if lead.value else '—' }}</td>
+            <td>{{ lead.created_at[:10] if lead.created_at else '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('leads_edit', id=lead.id) }}" class="btn-secondary btn-sm">Edit</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted empty-cell">No leads linked.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<div class="section-header section-header-mt">
+    <h2>Linked Deals</h2>
+    <a href="{{ url_for('deals_new') }}" class="btn-secondary btn-sm">+ Add Deal</a>
+</div>
+<div class="table-wrapper">
+<table>
+    <thead>
+        <tr><th>Title</th><th>Stage</th><th>Value</th><th>Close Date</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+        {% for deal in deals %}
+        <tr>
+            <td>{{ deal.title }}</td>
+            <td>{{ deal.stage or '—' }}</td>
+            <td>{{ '$%.2f'|format(deal.value) if deal.value else '—' }}</td>
+            <td>{{ deal.close_date or '—' }}</td>
+            <td class="actions">
+                <a href="{{ url_for('deals_edit', id=deal.id) }}" class="btn-secondary btn-sm">Edit</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted empty-cell">No deals linked.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}
