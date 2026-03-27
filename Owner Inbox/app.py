@@ -5,6 +5,8 @@ import datetime
 import smtplib
 import socket
 import subprocess
+import threading
+import uuid
 import requests as http_requests
 from flask import Flask, render_template, request, redirect, url_for, flash, g, session, jsonify
 from database import get_db, close_db, init_db
@@ -901,15 +903,22 @@ def ro_match_title(industry):
     return RO_DEFAULT_TITLE
 
 
-def search_businesses(business_type, area):
+# In-memory store for async search jobs: {job_id: {status, results, error, meta}}
+_search_jobs = {}
+
+
+def _run_search_job(job_id, business_type, area):
+    """Background thread: runs Apify and stores results in _search_jobs."""
     token = os.environ.get('APIFY_TOKEN', '')
     if not token:
-        return [{"error": "APIFY_TOKEN not set"}]
+        _search_jobs[job_id] = {'status': 'error', 'error': 'APIFY_TOKEN not set'}
+        return
     try:
         client = ApifyClient(token)
         run_input = {
             "searchStringsArray": [f"{business_type} in {area}"],
             "maxCrawledPlacesPerSearch": 100,
+            "maxCrawledPlaces": 100,
             "language": "en",
             "countryCode": "us",
         }
@@ -926,9 +935,13 @@ def search_businesses(business_type, area):
                 "rating": item.get("totalScore", ""),
                 "category": item.get("categoryName", ""),
             })
-        return results
+        _search_jobs[job_id] = {
+            'status': 'done',
+            'results': results,
+            'meta': {'business_type': business_type, 'area': area},
+        }
     except Exception as e:
-        return [{"error": str(e)}]
+        _search_jobs[job_id] = {'status': 'error', 'error': str(e)}
 
 
 # ─── RO Leads: Routes ─────────────────────────────────────────────────────────
@@ -943,26 +956,38 @@ def ro_search():
     results = None
     business_type = ""
     area = ""
+    job_id = None
+
     if request.method == 'POST':
         business_type = request.form.get('business_type', '').strip()
         area = request.form.get('area', '').strip()
         if business_type and area:
-            results = search_businesses(business_type, area)
-            # Store results in session for Save All
-            if results and not results[0].get('error'):
-                session['last_search_results'] = results
-                session['last_search_meta'] = {'business_type': business_type, 'area': area}
+            # Kick off background search, return immediately
+            job_id = str(uuid.uuid4())
+            _search_jobs[job_id] = {'status': 'running'}
+            t = threading.Thread(target=_run_search_job, args=(job_id, business_type, area), daemon=True)
+            t.start()
+            session['search_job_id'] = job_id
+            session['search_meta'] = {'business_type': business_type, 'area': area}
         else:
             flash('Please enter a business type and select an area.', 'error')
 
-    # Load saved results from session if GET (page reload after save)
-    if results is None and request.method == 'GET':
-        results = session.get('last_search_results')
-        meta = session.get('last_search_meta', {})
+    # On GET: check if there's a running/completed job in session
+    if request.method == 'GET':
+        job_id = session.get('search_job_id')
+        meta = session.get('search_meta', {})
         business_type = meta.get('business_type', '')
         area = meta.get('area', '')
+        if job_id and _search_jobs.get(job_id, {}).get('status') == 'done':
+            results = _search_jobs[job_id].get('results', [])
+            session['last_search_results'] = results
+            session['last_search_meta'] = meta
+        elif not job_id:
+            results = session.get('last_search_results')
+            meta2 = session.get('last_search_meta', {})
+            business_type = meta2.get('business_type', business_type)
+            area = meta2.get('area', area)
 
-    # Build set of existing prospect names for duplicate detection
     db = get_db()
     existing_names = {
         row[0].lower().strip()
@@ -978,7 +1003,26 @@ def ro_search():
         service_cities=RO_SERVICE_CITIES,
         industries=RO_INDUSTRIES,
         existing_names=existing_names,
+        job_id=job_id,
+        job_status=_search_jobs.get(job_id, {}).get('status') if job_id else None,
     )
+
+
+@app.route('/ro/search/status/<job_id>')
+def ro_search_status(job_id):
+    job = _search_jobs.get(job_id, {})
+    status = job.get('status', 'unknown')
+    if status == 'done':
+        # Persist to session so page can load results on next GET
+        meta = session.get('search_meta', {})
+        session['last_search_results'] = job.get('results', [])
+        session['last_search_meta'] = meta
+        session.pop('search_job_id', None)
+    return jsonify({
+        'status': status,
+        'count': len(job.get('results', [])),
+        'error': job.get('error'),
+    })
 
 
 @app.route('/ro/search/save', methods=['POST'])

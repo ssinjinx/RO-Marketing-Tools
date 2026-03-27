@@ -4,7 +4,7 @@
     <h1>Prospect Search</h1>
 </div>
 
-<form class="search-form" method="POST" action="{{ url_for('ro_search') }}">
+<form class="search-form" method="POST" action="{{ url_for('ro_search') }}" id="searchForm">
     <div class="form-group">
         <label>Area (State or City)</label>
         <select name="area">
@@ -35,11 +35,55 @@
                style="margin-top:8px; display:{% if business_type and business_type not in industries %}block{% else %}none{% endif %};">
     </div>
     <div class="form-group">
-        <button type="submit" class="btn-primary">Search</button>
+        <button type="submit" class="btn-primary" id="searchBtn">Search</button>
     </div>
 </form>
 
-{% if results is not none %}
+<!-- Running indicator -->
+{% if job_status == 'running' %}
+<div id="searchProgress" style="margin:24px 0; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; text-align:center;">
+    <div style="font-size:1rem; font-weight:600; margin-bottom:8px;">Searching Google Maps for <strong>{{ business_type }}</strong> in <strong>{{ area }}</strong>…</div>
+    <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">This can take 1–2 minutes for up to 100 results. Hang tight.</div>
+    <div class="progress-bar-wrap" style="background:#2a2a3a;border-radius:99px;height:8px;max-width:400px;margin:0 auto;">
+        <div id="progressBar" style="height:8px;border-radius:99px;background:#6ab4f0;width:5%;transition:width 1s ease;"></div>
+    </div>
+    <div id="progressLabel" style="font-size:0.8rem;color:#888;margin-top:8px;">Starting…</div>
+</div>
+<script>
+(function() {
+    const jobId = "{{ job_id }}";
+    let dots = 0;
+    let width = 5;
+    const bar = document.getElementById('progressBar');
+    const label = document.getElementById('progressLabel');
+
+    function poll() {
+        fetch('/ro/search/status/' + jobId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'done') {
+                    bar.style.width = '100%';
+                    label.textContent = 'Done! Found ' + data.count + ' results. Loading…';
+                    setTimeout(() => { window.location.href = '/ro/search'; }, 800);
+                } else if (data.status === 'error') {
+                    label.textContent = 'Error: ' + data.error;
+                    bar.style.background = '#e05a5a';
+                } else {
+                    width = Math.min(width + 3, 90);
+                    bar.style.width = width + '%';
+                    dots = (dots + 1) % 4;
+                    label.textContent = 'Searching' + '.'.repeat(dots + 1);
+                    setTimeout(poll, 3000);
+                }
+            })
+            .catch(() => setTimeout(poll, 5000));
+    }
+    setTimeout(poll, 3000);
+})();
+</script>
+{% endif %}
+
+{% if results is not none and job_status != 'running' %}
     {% if results|length == 0 %}
         <div class="empty-state">No results found. Try a different search term or area.</div>
     {% elif results[0].get('error') %}
@@ -48,12 +92,6 @@
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
             <p class="meta" style="margin:0;">
                 {{ results|length }} results for <strong>{{ business_type }}</strong> in <strong>{{ area }}</strong>
-                &nbsp;·&nbsp;
-                <span style="color:#4caf89;">
-                    {{ results|length - (results|selectattr('title')|map(attribute='title')|map('lower')|map('strip')|select('in', existing_names)|list|length) }} new
-                </span>
-                &nbsp;·&nbsp;
-                {{ existing_names|length }} already in DB
             </p>
             <form method="POST" action="{{ url_for('ro_save_all_results') }}" style="margin:0;">
                 <button type="submit" class="btn-success">&#8659; Save All New to Database</button>
@@ -103,9 +141,7 @@
 {% endif %}
 
 <style>
-.result-card-saved {
-    opacity: 0.55;
-}
+.result-card-saved { opacity: 0.55; }
 .saved-badge {
     font-size: 0.7rem;
     background: #1a3a2a;
@@ -119,8 +155,7 @@
 </style>
 
 <script>
-// Merge custom input value into business_type on submit
-document.querySelector('.search-form').addEventListener('submit', function(e) {
+document.getElementById('searchForm').addEventListener('submit', function(e) {
     const sel = document.getElementById('industrySelect');
     const custom = document.getElementById('customIndustry');
     if (sel.value === '__custom__') {
@@ -130,6 +165,8 @@ document.querySelector('.search-form').addEventListener('submit', function(e) {
         sel.name = 'business_type';
         custom.name = 'business_type_custom';
     }
+    document.getElementById('searchBtn').textContent = 'Starting search…';
+    document.getElementById('searchBtn').disabled = true;
 });
 
 function handleIndustryChange(sel) {
