@@ -1662,9 +1662,8 @@ def ro_draft_email(contact_id):
     if not prospect:
         return jsonify({'error': 'Prospect not found'}), 404
 
-    api_key = os.environ.get('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'API key not configured'}), 500
+    data = request.get_json(silent=True) or {}
+    model_key = data.get('model', 'claude')
 
     contact_name = contact['name'] or 'there'
     contact_title = contact['title'] or 'decision maker'
@@ -1690,14 +1689,14 @@ Write a short (3-4 paragraph) outreach email:
 Keep it warm, direct, and under 200 words. No fluff."""
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
+        client, model_id = get_ai_client(model_key)
         response = client.messages.create(
-            model='claude-sonnet-4-6',
+            model=model_id,
             max_tokens=512,
             messages=[{'role': 'user', 'content': prompt}]
         )
         draft = response.content[0].text
-        return jsonify({'draft': draft})
+        return jsonify({'draft': draft, 'model': model_key})
     except anthropic.BadRequestError as e:
         return jsonify({'error': str(e)}), 402
     except Exception as e:
@@ -1765,6 +1764,24 @@ def competitors_run_scan():
     )
     flash('Competitor scan started — check back in a few minutes.', 'success')
     return redirect(url_for('competitors'))
+
+
+AVAILABLE_MODELS = {
+    'claude':  {'label': 'Claude Sonnet',    'model': 'claude-sonnet-4-6',  'provider': 'anthropic'},
+    'minimax': {'label': 'MiniMax M2.7',     'model': 'MiniMax-M2.7',       'provider': 'minimax'},
+}
+
+
+def get_ai_client(model_key='claude'):
+    """Return (anthropic_client, model_id) for the given model key."""
+    cfg = AVAILABLE_MODELS.get(model_key, AVAILABLE_MODELS['claude'])
+    if cfg['provider'] == 'minimax':
+        key = os.environ.get('MINIMAX_API_KEY', '')
+        client = anthropic.Anthropic(api_key=key, base_url='https://api.minimax.io/anthropic')
+    else:
+        key = os.environ.get('ANTHROPIC_API_KEY', '')
+        client = anthropic.Anthropic(api_key=key)
+    return client, cfg['model']
 
 
 CHAT_SYSTEM_PROMPT = """You are the orchestrator for Roberts Oxygen's marketing tools team.
@@ -1845,18 +1862,18 @@ def chat():
     if not messages:
         return jsonify({'error': 'No messages provided'}), 400
 
-    api_key = os.environ.get('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'API key not configured'}), 500
-
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model='claude-sonnet-4-6',
-        max_tokens=1024,
-        system=CHAT_SYSTEM_PROMPT,
-        messages=messages
-    )
-    return jsonify({'response': response.content[0].text})
+    model_key = data.get('model', 'claude')
+    client, model_id = get_ai_client(model_key)
+    try:
+        response = client.messages.create(
+            model=model_id,
+            max_tokens=1024,
+            system=CHAT_SYSTEM_PROMPT,
+            messages=messages
+        )
+        return jsonify({'response': response.content[0].text, 'model': model_key})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @socketio.on('connect')

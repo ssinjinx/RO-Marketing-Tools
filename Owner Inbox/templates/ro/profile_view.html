@@ -167,7 +167,13 @@
     <div class="detail-card" style="border-left: 3px solid var(--accent);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
             <h3 style="font-size:1rem; font-weight:700;">✉ Email Draft</h3>
-            <span id="draftFor" style="font-size:0.85rem; color:var(--text-muted);"></span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span id="draftFor" style="font-size:0.85rem; color:var(--text-muted);"></span>
+                <div class="model-toggle" id="draftModelToggle" title="Switch AI model">
+                    <button class="model-btn active" data-model="claude" onclick="setDraftModel('claude', this)">Claude</button>
+                    <button class="model-btn" data-model="minimax" onclick="setDraftModel('minimax', this)">MiniMax</button>
+                </div>
+            </div>
         </div>
         <div id="draftLoading" style="display:none; color:var(--text-muted); font-size:0.9rem; padding:12px 0;">
             Generating draft...
@@ -285,6 +291,22 @@ function toggleDraftBtn(checkbox) {
     }
 }
 
+let _draftModel = localStorage.getItem('preferredModel') || 'claude';
+
+function setDraftModel(model, btn) {
+    _draftModel = model;
+    localStorage.setItem('preferredModel', model);
+    document.querySelectorAll('#draftModelToggle .model-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+// Restore saved model preference on load
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('preferredModel') || 'claude';
+    const btn = document.querySelector(`#draftModelToggle [data-model="${saved}"]`);
+    if (btn) { _draftModel = saved; document.querySelectorAll('#draftModelToggle .model-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+});
+
 async function draftEmail(contactId, email, name) {
     const panel = document.getElementById('draftPanel');
     const loading = document.getElementById('draftLoading');
@@ -302,7 +324,11 @@ async function draftEmail(contactId, email, name) {
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
-        const res = await fetch(`/ro/contacts/${contactId}/draft-email`, { method: 'POST' });
+        const res = await fetch(`/ro/contacts/${contactId}/draft-email`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({model: _draftModel})
+        });
         const data = await res.json();
         loading.style.display = 'none';
 
