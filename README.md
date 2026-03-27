@@ -11,10 +11,11 @@ RO Marketing Tools is a Flask-based business management system that combines:
 - **Owner Inbox Dashboard** — Central hub for managing everything
 - **CRM** — Contacts, leads, deals, and pipeline
 - **Prospect Database** — Roberts Oxygen leads with cold email generation
-- **Projects & Tasks** — Assign work to AI agents via a Team Inbox
+- **Projects & Tasks** — AI agents auto-dispatched on project creation, auto-complete when done
 - **Knowledge Base & File Catalog** — Business documentation
 - **Live Monitor** — Discord alerts for open projects and tasks
 - **AI Agent Team** — 5 specialized agents (Sage, Ian, Maya, Rex, Kai)
+- **Firecrawl Intelligence** — Prospect website profiling and weekly competitor monitoring
 
 ---
 
@@ -363,6 +364,135 @@ All styles are in `static/style.css`. Key design decisions:
 - `.env` is gitignored — never commit API keys.
 - No user accounts — single-owner PIN access only.
 - The Flask secret key falls back to a default dev value. Set `SECRET_KEY` in `.env` for production.
+
+---
+
+## Firecrawl Intelligence
+
+Firecrawl (https://github.com/firecrawl/firecrawl) is a hosted web scraping API that converts any website into clean, structured data. It handles JavaScript rendering, anti-bot evasion, and proxy rotation automatically. No custom selectors — you define a schema and AI extracts the fields.
+
+### Setup
+
+1. Sign up at firecrawl.dev (500 free lifetime credits, $16/month Hobby for ongoing use)
+2. Add your API key to `.env`:
+   ```
+   FIRECRAWL_API_KEY=fc-your_key_here
+   ```
+3. Install the SDK:
+   ```bash
+   pip install firecrawl-py
+   ```
+
+### Use Case 1 — Prospect Website Profiling
+
+**What it does:** When you open a prospect profile and click **Deep Profile**, Firecrawl scrapes the company's website and extracts:
+- Phone number
+- Physical address, city, state
+- Owner or contact name + title
+- Business type / industry
+- Gas-usage signals (welding equipment, brewing systems, medical gas, draft beer, etc.)
+- Current supplier mentions
+- Equipment that uses industrial gas
+
+**Empty fields get auto-filled.** Gas signals and equipment notes get appended to the prospect's Notes field. If a contact name is found, it's added to the Contacts table automatically.
+
+**Files:**
+| File | Purpose |
+|------|---------|
+| `firecrawl_client.py` | Firecrawl SDK wrapper — `profile_prospect()`, `snapshot_competitor()`, `search_prospects()` |
+| `Owner Inbox/templates/ro/profile_view.html` | Deep Profile button + JS handler |
+| `Owner Inbox/app.py` → `/ro/profiles/<id>/deep-profile` | Route that calls Firecrawl and saves results |
+
+**Credit cost:** 1 credit per page scraped (~1-3 credits per prospect profile depending on site size).
+
+### Use Case 2 — Weekly Competitor Intelligence
+
+**What it does:** `competitor_monitor.py` runs weekly (every Monday at 8am) and for each competitor:
+1. Maps their site to discover service area pages, pricing pages, product listings, and news sections
+2. Extracts structured intel: service areas, products, pricing, locations, recent news
+3. Saves a dated JSON snapshot to `competitor_snapshots/`
+4. Diffs against the previous week's snapshot
+5. Writes a human-readable report to `reports/competitor_report_YYYYMMDD.txt`
+
+**Competitors tracked** (edit `competitors.json` to add/remove):
+- Airgas
+- Matheson
+- Air Products
+- Linde
+- National Welders
+
+**Run commands:**
+```bash
+# Run once immediately
+cd "Owner Inbox" && python3 competitor_monitor.py
+
+# Run in watch mode — fires every Monday at 08:00
+cd "Owner Inbox" && python3 competitor_monitor.py --watch
+```
+
+**Files:**
+| File | Purpose |
+|------|---------|
+| `competitor_monitor.py` | Main monitor script |
+| `competitors.json` | List of competitor names + URLs to track |
+| `competitor_snapshots/` | Dated JSON snapshots per competitor per week |
+| `reports/competitor_report_*.txt` | Human-readable weekly diff reports |
+
+**Credit cost:** ~10-15 credits per competitor per week (map + extract ~10 pages). 5 competitors = ~50-75 credits/week = well within Hobby tier (3,000/month).
+
+### Firecrawl vs. Apify — How They're Used Together
+
+| Tool | Used For |
+|------|---------|
+| **Apify** | Finding businesses by category + location (Google Maps Actor), scheduled pipelines with built-in monitoring |
+| **Firecrawl** | Profiling individual prospect websites, competitor site monitoring, structured extraction from arbitrary URLs |
+| **BeautifulSoup** | Simple HTML-only pages where existing selectors already work |
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `FIRECRAWL_API_KEY` | Yes | API key from firecrawl.dev |
+
+---
+
+## Agent Auto-Dispatch Workflow
+
+When a project is created, the system automatically:
+
+1. Saves the project to the database (`status = active`)
+2. Selects the right agent based on keywords in the project name/description
+3. Sets the agent status to `working` in the DB (visible on the dashboard)
+4. Spawns a `claude` CLI subprocess with the agent's full persona + task description
+5. The agent does the work (edits files, writes scripts, runs research)
+6. When done, the agent calls `POST /projects/<id>/complete`
+7. Project flips to `completed`, all tasks marked done, agent resets to `idle`
+8. Agent log saved to `reports/agent_log_<id>.txt`
+9. Completion summary saved to `reports/completed_<id>.txt`
+
+**No Discord required. No manual steps. No watcher process needed.**
+
+### Agent Keyword Routing
+
+| Keywords | Agent Assigned |
+|----------|---------------|
+| ui, development, frontend, backend, flask, web | Maya |
+| research, analysis, market, competitive | Sage |
+| scrape, scraping, data, apify, pipeline | Kai |
+| automation, script, schedule, monitor | Rex |
+| hire, hiring, onboard, agent, hr | Ian |
+| (no match) | Maya (default) |
+
+### Completion Endpoint
+
+```
+POST /projects/<id>/complete
+```
+
+- No PIN required (exempt from auth so agent subprocess can call it)
+- Marks project `completed`
+- Marks all open tasks `done`
+- Resets assigned agent to `idle`
 
 ---
 

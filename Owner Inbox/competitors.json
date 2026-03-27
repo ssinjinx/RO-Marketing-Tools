@@ -1,0 +1,29 @@
+{
+  "competitors": [
+    {
+      "name": "Airgas",
+      "url": "https://www.airgas.com",
+      "notes": "Largest US industrial gas distributor"
+    },
+    {
+      "name": "Matheson",
+      "url": "https://www.mathesongas.com",
+      "notes": "Industrial, medical, and specialty gases"
+    },
+    {
+      "name": "Air Products",
+      "url": "https://www.airproducts.com",
+      "notes": "Industrial gases and related equipment"
+    },
+    {
+      "name": "Linde",
+      "url": "https://www.linde.com",
+      "notes": "Global industrial gas supplier, merged with Praxair"
+    },
+    {
+      "name": "National Welders",
+      "url": "https://www.nationalwelders.com",
+      "notes": "Regional supplier strong in Southeast"
+    }
+  ]
+}

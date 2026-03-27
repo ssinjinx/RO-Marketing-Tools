@@ -1296,6 +1296,87 @@ def guess_emails(domain, mx_host):
     return verified
 
 
+@app.route('/ro/profiles/<int:prospect_id>/deep-profile', methods=['POST'])
+def ro_deep_profile(prospect_id):
+    """Use Firecrawl to extract structured data from the prospect's website and fill empty fields."""
+    db = get_db()
+    prospect = db.execute('SELECT * FROM prospects WHERE id = ?', (prospect_id,)).fetchone()
+    if not prospect:
+        return jsonify({'error': 'Prospect not found'}), 404
+    if not prospect['website']:
+        return jsonify({'error': 'No website on file for this prospect'}), 400
+    if not os.environ.get('FIRECRAWL_API_KEY'):
+        return jsonify({'error': 'FIRECRAWL_API_KEY not configured'}), 500
+
+    from firecrawl_client import profile_prospect
+    extracted = profile_prospect(prospect['website'])
+
+    if 'error' in extracted:
+        return jsonify({'error': extracted['error']}), 500
+
+    # Map Firecrawl fields → DB columns, only fill if currently empty
+    field_map = {
+        'phone':               'phone',
+        'address':             'address',
+        'city':                'city',
+        'state':               'state',
+        'business_type':       'industry',
+        'gas_signals':         None,   # goes into notes
+        'equipment_mentioned': None,   # goes into notes
+        'current_supplier':    None,   # goes into notes
+    }
+
+    updates = {}
+    notes_additions = []
+
+    for fc_field, db_col in field_map.items():
+        val = extracted.get(fc_field, '').strip()
+        if not val:
+            continue
+        if db_col and not prospect[db_col]:
+            updates[db_col] = val
+        elif fc_field in ('gas_signals', 'equipment_mentioned', 'current_supplier'):
+            notes_additions.append(f'{fc_field.replace("_", " ").title()}: {val}')
+
+    # Append gas intelligence to notes
+    if notes_additions:
+        existing_notes = prospect['notes'] or ''
+        separator = '\n\n' if existing_notes else ''
+        new_notes = existing_notes + separator + '[Firecrawl]\n' + '\n'.join(notes_additions)
+        updates['notes'] = new_notes
+
+    # Save extracted contact person to ro_contacts if found and not duplicate
+    contact_name  = extracted.get('contact_name', '').strip()
+    contact_title = extracted.get('contact_title', '').strip()
+    saved_contact = None
+    if contact_name:
+        existing = db.execute(
+            'SELECT id FROM ro_contacts WHERE prospect_id=? AND name=?',
+            (prospect_id, contact_name)
+        ).fetchone()
+        if not existing:
+            db.execute(
+                'INSERT INTO ro_contacts (prospect_id, name, title, is_suggested) VALUES (?, ?, ?, 1)',
+                (prospect_id, contact_name, contact_title)
+            )
+            db.commit()
+            saved_contact = {'name': contact_name, 'title': contact_title}
+
+    if updates:
+        set_clause = ', '.join(f'{col} = ?' for col in updates)
+        db.execute(
+            f'UPDATE prospects SET {set_clause} WHERE id = ?',
+            list(updates.values()) + [prospect_id]
+        )
+        db.commit()
+
+    return jsonify({
+        'updated_fields': list(updates.keys()),
+        'saved_contact':  saved_contact,
+        'raw':            extracted,
+    })
+
+
 @app.route('/ro/profiles/<int:prospect_id>/find-contacts', methods=['POST'])
 def ro_find_contacts(prospect_id):
     db = get_db()

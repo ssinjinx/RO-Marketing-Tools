@@ -80,6 +80,9 @@
     <h2>Contacts ({{ contacts|length }})</h2>
     <div class="actions">
         {% if prospect.website %}
+        <button id="deepProfileBtn" class="btn-secondary btn-sm" onclick="deepProfile({{ prospect.id }})" title="Use Firecrawl AI to extract contact info and gas-usage signals from the website">
+            Deep Profile
+        </button>
         <button id="findContactsBtn" class="btn-primary btn-sm" onclick="findContacts({{ prospect.id }})">
             Find Contacts
         </button>
@@ -88,6 +91,8 @@
     </div>
 </div>
 
+<div id="deepProfileStatus" style="display:none;" class="flash flash-success mb-1"></div>
+<div id="deepProfileError" style="display:none;" class="flash flash-error mb-1"></div>
 <div id="findContactsStatus" style="display:none;" class="flash flash-success mb-1"></div>
 <div id="findContactsError" style="display:none;" class="flash flash-error mb-1"></div>
 
@@ -168,6 +173,42 @@
 </div>
 
 <script>
+async function deepProfile(prospectId) {
+    const btn = document.getElementById('deepProfileBtn');
+    const statusEl = document.getElementById('deepProfileStatus');
+    const errorEl  = document.getElementById('deepProfileError');
+    statusEl.style.display = 'none';
+    errorEl.style.display  = 'none';
+    btn.disabled    = true;
+    btn.textContent = 'Profiling…';
+
+    try {
+        const res  = await fetch(`/ro/profiles/${prospectId}/deep-profile`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.error) {
+            errorEl.textContent = data.error;
+            errorEl.style.display = 'block';
+        } else {
+            const fields  = data.updated_fields || [];
+            const contact = data.saved_contact;
+            let msg = fields.length
+                ? `Updated: ${fields.join(', ')}.`
+                : 'No new fields to fill.';
+            if (contact) msg += ` Contact found: ${contact.name}${contact.title ? ' (' + contact.title + ')' : ''}.`;
+            msg += ' Reloading…';
+            statusEl.textContent  = msg;
+            statusEl.style.display = 'block';
+            if (fields.length || contact) setTimeout(() => location.reload(), 1500);
+        }
+    } catch(e) {
+        errorEl.textContent = 'Request failed. Try again.';
+        errorEl.style.display = 'block';
+    }
+    btn.disabled    = false;
+    btn.textContent = 'Deep Profile';
+}
+
 async function findContacts(prospectId) {
     const btn = document.getElementById('findContactsBtn');
     const statusEl = document.getElementById('findContactsStatus');
