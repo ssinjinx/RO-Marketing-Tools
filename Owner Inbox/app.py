@@ -1695,7 +1695,7 @@ Keep it warm, direct, and under 200 words. No fluff."""
             max_tokens=512,
             messages=[{'role': 'user', 'content': prompt}]
         )
-        draft = response.content[0].text
+        draft = next((b.text for b in response.content if hasattr(b, 'text')), '')
         return jsonify({'draft': draft, 'model': model_key})
     except anthropic.BadRequestError as e:
         return jsonify({'error': str(e)}), 402
@@ -1871,7 +1871,8 @@ def chat():
             system=CHAT_SYSTEM_PROMPT,
             messages=messages
         )
-        return jsonify({'response': response.content[0].text, 'model': model_key})
+        text = next((b.text for b in response.content if hasattr(b, 'text')), '')
+        return jsonify({'response': text, 'model': model_key})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
