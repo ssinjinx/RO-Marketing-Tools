@@ -93,6 +93,17 @@
 
 <div id="deepProfileStatus" style="display:none;" class="flash flash-success mb-1"></div>
 <div id="deepProfileError" style="display:none;" class="flash flash-error mb-1"></div>
+
+<!-- Deep Profile Results Panel -->
+<div id="deepProfilePanel" style="display:none; margin-bottom:20px;">
+    <div class="detail-card" style="border-left:3px solid #6ab4f0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-size:1rem; font-weight:700;">Firecrawl Intel</h3>
+            <button class="btn-secondary btn-sm" onclick="document.getElementById('deepProfilePanel').style.display='none'">Close</button>
+        </div>
+        <div id="deepProfileResults" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+</div>
 <div id="findContactsStatus" style="display:none;" class="flash flash-success mb-1"></div>
 <div id="findContactsError" style="display:none;" class="flash flash-error mb-1"></div>
 
@@ -190,16 +201,43 @@ async function deepProfile(prospectId) {
             errorEl.textContent = data.error;
             errorEl.style.display = 'block';
         } else {
+            const raw     = data.raw || {};
             const fields  = data.updated_fields || [];
             const contact = data.saved_contact;
-            let msg = fields.length
-                ? `Updated: ${fields.join(', ')}.`
-                : 'No new fields to fill.';
-            if (contact) msg += ` Contact found: ${contact.name}${contact.title ? ' (' + contact.title + ')' : ''}.`;
-            msg += ' Reloading…';
-            statusEl.textContent  = msg;
-            statusEl.style.display = 'block';
-            if (fields.length || contact) setTimeout(() => location.reload(), 1500);
+
+            // Show results panel with all extracted data
+            const panel    = document.getElementById('deepProfilePanel');
+            const resultsEl = document.getElementById('deepProfileResults');
+            const labels = {
+                company_name:        'Company Name',
+                phone:               'Phone',
+                address:             'Address',
+                city:                'City',
+                state:               'State',
+                contact_name:        'Contact Name',
+                contact_title:       'Contact Title',
+                business_type:       'Business Type',
+                gas_signals:         'Gas Signals',
+                equipment_mentioned: 'Equipment',
+                current_supplier:    'Current Supplier',
+            };
+
+            let html = '';
+            for (const [key, label] of Object.entries(labels)) {
+                if (raw[key]) {
+                    const saved = fields.includes(key === 'business_type' ? 'industry' : key) ? ' <span style="color:#4caf89;font-size:0.75rem;">(saved)</span>' : '';
+                    html += `<div style="border-left:3px solid #3a5a8a;padding-left:12px;">
+                        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:2px;">${label}${saved}</div>
+                        <div style="font-size:0.88rem;color:#ccc;line-height:1.5;">${raw[key]}</div>
+                    </div>`;
+                }
+            }
+            if (!html) html = '<div style="color:#888;font-style:italic;">Firecrawl returned no data for this site.</div>';
+            resultsEl.innerHTML = html;
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            if (fields.length || contact) setTimeout(() => location.reload(), 2500);
         }
     } catch(e) {
         errorEl.textContent = 'Request failed. Try again.';
