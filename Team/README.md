@@ -15,6 +15,7 @@ Each member has a **Name**, **Identity**, and **Persona** and owns a specific ar
 | [Maya](Dev_Maya.md) | Full-Stack Developer | Builds and maintains the local Flask business management system |
 | [Rex](Automation_Rex.md) | Automation Engineer | Builds scheduled monitor scripts, local AI integrations, and system reporting pipelines |
 | [Kai](Scraper_Kai.md) | Marketing Data Scraper | Scrapes marketing intelligence from the web and manages the Marketing Scrap Information Database |
+| [Flynn](Firecrawl_Flynn.md) | Firecrawl & Web Intelligence Specialist | Owns Firecrawl-powered extraction workflows: prospect profiling, competitor monitoring, and search-based discovery |
 
 ---
 

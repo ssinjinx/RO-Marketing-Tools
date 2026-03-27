@@ -15,11 +15,11 @@ _client = None
 def get_client():
     global _client
     if _client is None:
-        from firecrawl import FirecrawlApp
+        from firecrawl import Firecrawl
         api_key = os.environ.get('FIRECRAWL_API_KEY', '')
         if not api_key:
             raise RuntimeError('FIRECRAWL_API_KEY not set in .env')
-        _client = FirecrawlApp(api_key=api_key)
+        _client = Firecrawl(api_key=api_key)
     return _client
 
 

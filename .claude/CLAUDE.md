@@ -28,6 +28,10 @@ Claude acts as **orchestrator only**. Never performs work directly. Always deleg
 - **Role:** Data & Scraping
 - **Responsibility:** Apify scraping pipelines, prospect database population, and marketing data workflows
 
+### Flynn — Firecrawl & Web Intelligence Specialist
+- **Role:** Firecrawl & Web Intelligence
+- **Responsibility:** Firecrawl-powered extraction workflows — prospect profiling from arbitrary business URLs, competitor page monitoring with snapshot diffing, and search-based discovery pipelines
+
 ---
 
 ## Agent Format
