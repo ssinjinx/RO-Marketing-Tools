@@ -21,9 +21,18 @@
         </select>
     </div>
     <div class="form-group">
-        <label>Business Type</label>
-        <input type="text" name="business_type" value="{{ business_type }}"
-               placeholder="e.g. brewery, metal fabricator, restaurant" required>
+        <label>Industry</label>
+        <select name="business_type" id="industrySelect" onchange="handleIndustryChange(this)">
+            <option value="">— Select an industry —</option>
+            {% for ind in industries %}
+                <option value="{{ ind }}" {% if business_type == ind %}selected{% endif %}>{{ ind }}</option>
+            {% endfor %}
+            <option value="__custom__" {% if business_type and business_type not in industries %}selected{% endif %}>Other (custom)…</option>
+        </select>
+        <input type="text" id="customIndustry" name="business_type_custom"
+               placeholder="Type a custom industry…"
+               value="{{ business_type if business_type and business_type not in industries else '' }}"
+               style="margin-top:8px; display:{% if business_type and business_type not in industries %}block{% else %}none{% endif %};">
     </div>
     <div class="form-group">
         <button type="submit" class="btn-primary">Search</button>
@@ -34,15 +43,31 @@
     {% if results|length == 0 %}
         <div class="empty-state">No results found. Try a different search term or area.</div>
     {% elif results[0].get('error') %}
-        <div class="flash-error">Search error: {{ results[0].error }}</div>
+        <div class="flash flash-error">Search error: {{ results[0].error }}</div>
     {% else %}
-        <p class="text-muted mb-1">
-            Showing {{ results|length }} results for "<strong>{{ business_type }}</strong>" near <strong>{{ area }}</strong>
-        </p>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+            <p class="meta" style="margin:0;">
+                {{ results|length }} results for <strong>{{ business_type }}</strong> in <strong>{{ area }}</strong>
+                &nbsp;·&nbsp;
+                <span style="color:#4caf89;">
+                    {{ results|length - (results|selectattr('title')|map(attribute='title')|map('lower')|map('strip')|select('in', existing_names)|list|length) }} new
+                </span>
+                &nbsp;·&nbsp;
+                {{ existing_names|length }} already in DB
+            </p>
+            <form method="POST" action="{{ url_for('ro_save_all_results') }}" style="margin:0;">
+                <button type="submit" class="btn-success">&#8659; Save All New to Database</button>
+            </form>
+        </div>
+
         <div class="results-grid">
             {% for r in results %}
-            <div class="result-card">
+            {% set already_saved = r.title and r.title.lower().strip() in existing_names %}
+            <div class="result-card {% if already_saved %}result-card-saved{% endif %}">
                 <div class="result-title">
+                    {% if already_saved %}
+                        <span class="saved-badge">Already Saved</span>
+                    {% endif %}
                     <a href="{{ r.url }}" target="_blank" rel="noopener" class="result-title-link">
                         {{ r.title }}
                     </a>
@@ -54,6 +79,7 @@
                     <div class="result-snippet">{{ r.snippet }}</div>
                 {% endif %}
                 <div class="result-actions">
+                    {% if not already_saved %}
                     <form method="POST" action="{{ url_for('ro_save_search_result') }}" class="form-contents">
                         <input type="hidden" name="business_name" value="{{ r.title }}">
                         <input type="hidden" name="website" value="{{ r.url }}">
@@ -63,8 +89,9 @@
                         <input type="hidden" name="address" value="{{ r.address }}">
                         <input type="hidden" name="phone" value="{{ r.phone }}">
                         <input type="hidden" name="category" value="{{ r.category }}">
-                        <button type="submit" class="btn-success btn-sm">Save to Database</button>
+                        <button type="submit" class="btn-success btn-sm">Save</button>
                     </form>
+                    {% endif %}
                     {% if r.url %}
                         <a href="{{ r.url }}" target="_blank" rel="noopener" class="btn-secondary btn-sm">Visit</a>
                     {% endif %}
@@ -74,4 +101,45 @@
         </div>
     {% endif %}
 {% endif %}
+
+<style>
+.result-card-saved {
+    opacity: 0.55;
+}
+.saved-badge {
+    font-size: 0.7rem;
+    background: #1a3a2a;
+    color: #4caf89;
+    border: 1px solid #2a5a3a;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+</style>
+
+<script>
+// Merge custom input value into business_type on submit
+document.querySelector('.search-form').addEventListener('submit', function(e) {
+    const sel = document.getElementById('industrySelect');
+    const custom = document.getElementById('customIndustry');
+    if (sel.value === '__custom__') {
+        sel.name = '';
+        custom.name = 'business_type';
+    } else {
+        sel.name = 'business_type';
+        custom.name = 'business_type_custom';
+    }
+});
+
+function handleIndustryChange(sel) {
+    const custom = document.getElementById('customIndustry');
+    if (sel.value === '__custom__') {
+        custom.style.display = 'block';
+        custom.focus();
+    } else {
+        custom.style.display = 'none';
+    }
+}
+</script>
 {% endblock %}

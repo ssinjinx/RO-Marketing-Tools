@@ -854,6 +854,32 @@ RO_DEFAULT_PRODUCTS = ["Compressed gases", "Welding supplies"]
 RO_DEFAULT_TITLE = "Owner / Operations Manager"
 RO_STATUS_OPTIONS = ["new", "contacted", "qualified", "not_a_fit"]
 
+RO_INDUSTRIES = [
+    "Brewery / Craft Beer",
+    "Winery / Distillery",
+    "Restaurant / Bar",
+    "Coffee Shop / Cafe",
+    "Food Processing / Packaging",
+    "Metal Fabricator / Welding Shop",
+    "Auto Body / Collision Repair",
+    "Auto Repair / Mechanic Shop",
+    "Laser Cutting / CNC Plasma",
+    "Construction / Contractor",
+    "HVAC / Plumbing / Mechanical",
+    "Hospital / Medical Center",
+    "Urgent Care / Clinic",
+    "Dental Office",
+    "Veterinary Clinic",
+    "Laboratory / Research Facility",
+    "Biotech / Pharmaceutical",
+    "Aquarium / Fish Farm",
+    "Greenhouse / Hydroponic Farm",
+    "Fire Protection / Safety",
+    "Industrial Manufacturing",
+    "Aerospace / Defense",
+    "Scuba / Dive Shop",
+]
+
 
 def ro_match_products(industry):
     if not industry:
@@ -876,14 +902,14 @@ def ro_match_title(industry):
 
 
 def search_businesses(business_type, area):
-    token = os.environ.get('APIFY_API_TOKEN', '')
+    token = os.environ.get('APIFY_TOKEN', '')
     if not token:
-        return [{"error": "APIFY_API_TOKEN not set"}]
+        return [{"error": "APIFY_TOKEN not set"}]
     try:
         client = ApifyClient(token)
         run_input = {
             "searchStringsArray": [f"{business_type} in {area}"],
-            "maxCrawledPlacesPerSearch": 10,
+            "maxCrawledPlacesPerSearch": 100,
             "language": "en",
             "countryCode": "us",
         }
@@ -922,8 +948,27 @@ def ro_search():
         area = request.form.get('area', '').strip()
         if business_type and area:
             results = search_businesses(business_type, area)
+            # Store results in session for Save All
+            if results and not results[0].get('error'):
+                session['last_search_results'] = results
+                session['last_search_meta'] = {'business_type': business_type, 'area': area}
         else:
             flash('Please enter a business type and select an area.', 'error')
+
+    # Load saved results from session if GET (page reload after save)
+    if results is None and request.method == 'GET':
+        results = session.get('last_search_results')
+        meta = session.get('last_search_meta', {})
+        business_type = meta.get('business_type', '')
+        area = meta.get('area', '')
+
+    # Build set of existing prospect names for duplicate detection
+    db = get_db()
+    existing_names = {
+        row[0].lower().strip()
+        for row in db.execute('SELECT business_name FROM prospects').fetchall()
+    }
+
     return render_template(
         'ro/search.html',
         results=results,
@@ -931,6 +976,8 @@ def ro_search():
         area=area,
         service_states=RO_SERVICE_STATES,
         service_cities=RO_SERVICE_CITIES,
+        industries=RO_INDUSTRIES,
+        existing_names=existing_names,
     )
 
 
@@ -975,13 +1022,104 @@ def ro_save_search_result():
     return redirect(url_for('ro_search'))
 
 
+@app.route('/ro/search/save-all', methods=['POST'])
+def ro_save_all_results():
+    """Save all results from the last search session, skipping duplicates."""
+    results = session.get('last_search_results', [])
+    meta = session.get('last_search_meta', {})
+    industry = meta.get('business_type', '')
+    area = meta.get('area', '')
+
+    if not results:
+        flash('No search results to save.', 'error')
+        return redirect(url_for('ro_search'))
+
+    city, state = '', ''
+    if ',' in area:
+        parts = area.split(',', 1)
+        city = parts[0].strip()
+        state = parts[1].strip()
+    else:
+        state = area.strip()
+
+    db = get_db()
+    existing = {
+        row[0].lower().strip()
+        for row in db.execute('SELECT business_name FROM prospects').fetchall()
+    }
+
+    saved, skipped = 0, 0
+    for r in results:
+        name = (r.get('title') or '').strip()
+        if not name or name.lower() in existing:
+            skipped += 1
+            continue
+        effective_industry = industry or r.get('category', '')
+        products = ro_match_products(effective_industry)
+        title = ro_match_title(effective_industry)
+        address = r.get('address', '')
+        db.execute(
+            """INSERT INTO prospects
+               (business_name, address, phone, website, industry, city, state,
+                ro_products, suggested_contact_title, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (name, address, r.get('phone', ''), r.get('url', ''),
+             effective_industry, city, state,
+             ', '.join(products), title, ''),
+        )
+        existing.add(name.lower())
+        saved += 1
+
+    db.commit()
+    msg = f"Saved {saved} new prospect(s)."
+    if skipped:
+        msg += f" Skipped {skipped} already in database."
+    flash(msg, 'success')
+    return redirect(url_for('ro_search'))
+
+
 @app.route('/ro/profiles')
 def ro_profiles():
     db = get_db()
-    prospects = db.execute(
-        'SELECT * FROM prospects ORDER BY created_at DESC'
+    industry = request.args.get('industry', '')
+    page = max(1, int(request.args.get('page', 1)))
+    per_page = 100
+
+    # Distinct industries for tab list
+    rows = db.execute(
+        "SELECT industry, COUNT(*) as cnt FROM prospects WHERE industry IS NOT NULL AND industry != '' GROUP BY industry ORDER BY cnt DESC"
     ).fetchall()
-    return render_template('ro/profiles.html', prospects=prospects)
+    industries = [(r['industry'], r['cnt']) for r in rows]
+
+    # Filter + paginate
+    if industry:
+        total = db.execute(
+            'SELECT COUNT(*) FROM prospects WHERE industry=?', (industry,)
+        ).fetchone()[0]
+        offset = (page - 1) * per_page
+        prospects = db.execute(
+            'SELECT * FROM prospects WHERE industry=? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+            (industry, per_page, offset)
+        ).fetchall()
+    else:
+        total = db.execute('SELECT COUNT(*) FROM prospects').fetchone()[0]
+        offset = (page - 1) * per_page
+        prospects = db.execute(
+            'SELECT * FROM prospects ORDER BY created_at DESC LIMIT ? OFFSET ?',
+            (per_page, offset)
+        ).fetchall()
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+
+    return render_template(
+        'ro/profiles.html',
+        prospects=prospects,
+        industries=industries,
+        current_industry=industry,
+        current_page=page,
+        total_pages=total_pages,
+        total=total,
+    )
 
 
 @app.route('/ro/profiles/add', methods=['GET', 'POST'])
