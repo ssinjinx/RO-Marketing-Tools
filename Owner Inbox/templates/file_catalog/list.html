@@ -24,6 +24,9 @@
             <td>{{ file.tags or '—' }}</td>
             <td>{{ file.created_at[:10] if file.created_at else '—' }}</td>
             <td class="actions">
+                {% if file.file_path and file.file_path.startswith('static/uploads/') %}
+                <a href="{{ url_for('files_download', id=file.id) }}" class="btn-primary btn-sm">&#8659; Download</a>
+                {% endif %}
                 <a href="{{ url_for('files_edit', id=file.id) }}" class="btn-secondary btn-sm">Edit</a>
                 <form method="post" action="{{ url_for('files_delete', id=file.id) }}" class="form-inline-block">
                     <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Delete this file?')">Delete</button>

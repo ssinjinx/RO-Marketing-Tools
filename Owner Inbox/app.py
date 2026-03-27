@@ -156,6 +156,19 @@ def files_delete(id):
     return redirect(url_for('files_list'))
 
 
+@app.route('/files/<int:id>/download')
+def files_download(id):
+    from flask import send_from_directory
+    db = get_db()
+    file = db.execute("SELECT * FROM files WHERE id = ?", (id,)).fetchone()
+    if not file or not file['file_path']:
+        flash('File not available for download.', 'error')
+        return redirect(url_for('files_list'))
+    uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+    filename = os.path.basename(file['file_path'])
+    return send_from_directory(uploads_dir, filename, as_attachment=True)
+
+
 # ─── Knowledge Base ───────────────────────────────────────────────────────────
 
 @app.route('/kb')
@@ -815,6 +828,19 @@ def agent_status(id):
 
 RO_SERVICE_STATES = ["DE", "FL", "GA", "MD", "NJ", "NC", "PA", "SC", "VA"]
 
+# Zip codes grouped by state: list of (zip, city label) tuples
+RO_SERVICE_ZIPCODES = {
+    "DE": [("19801", "Wilmington"), ("19901", "Dover"), ("19958", "Lewes")],
+    "FL": [("32202", "Jacksonville"), ("33602", "Tampa"), ("32801", "Orlando"), ("33101", "Miami"), ("32301", "Tallahassee")],
+    "GA": [("30301", "Atlanta"), ("31401", "Savannah"), ("30901", "Augusta"), ("31201", "Macon")],
+    "MD": [("21201", "Baltimore"), ("20850", "Rockville"), ("21701", "Frederick"), ("21401", "Annapolis"), ("20601", "Waldorf")],
+    "NJ": [("08608", "Trenton"), ("07102", "Newark"), ("08401", "Atlantic City"), ("07030", "Hoboken")],
+    "NC": [("27601", "Raleigh"), ("28202", "Charlotte"), ("27401", "Greensboro"), ("28801", "Asheville"), ("27701", "Durham")],
+    "PA": [("19103", "Philadelphia"), ("15222", "Pittsburgh"), ("17101", "Harrisburg"), ("18503", "Scranton")],
+    "SC": [("29201", "Columbia"), ("29403", "Charleston"), ("29601", "Greenville"), ("29577", "Myrtle Beach")],
+    "VA": [("23219", "Richmond"), ("23451", "Virginia Beach"), ("23510", "Norfolk"), ("22314", "Alexandria"), ("20101", "Dulles"), ("24011", "Roanoke")],
+}
+
 RO_SERVICE_CITIES = [
     "Baltimore, MD", "Rockville, MD", "Frederick, MD", "Annapolis, MD",
     "Richmond, VA", "Virginia Beach, VA", "Norfolk, VA",
@@ -907,7 +933,7 @@ def ro_match_title(industry):
 _search_jobs = {}
 
 
-def _run_search_job(job_id, business_type, area):
+def _run_search_job(job_id, business_type, area, zip_code=None, radius=None):
     """Background thread: runs Apify and stores results in _search_jobs."""
     token = os.environ.get('APIFY_TOKEN', '')
     if not token:
@@ -915,8 +941,15 @@ def _run_search_job(job_id, business_type, area):
         return
     try:
         client = ApifyClient(token)
+        if zip_code:
+            if radius:
+                search_str = f"{business_type} near {zip_code} within {radius} miles"
+            else:
+                search_str = f"{business_type} near {zip_code}"
+        else:
+            search_str = f"{business_type} in {area}"
         run_input = {
-            "searchStringsArray": [f"{business_type} in {area}"],
+            "searchStringsArray": [search_str],
             "maxCrawledPlacesPerSearch": 100,
             "maxCrawledPlaces": 100,
             "language": "en",
@@ -956,21 +989,25 @@ def ro_search():
     results = None
     business_type = ""
     area = ""
+    zip_code = ""
+    radius = ""
     job_id = None
 
     if request.method == 'POST':
         business_type = request.form.get('business_type', '').strip()
         area = request.form.get('area', '').strip()
-        if business_type and area:
+        zip_code = request.form.get('zip_code', '').strip()
+        radius = request.form.get('radius', '').strip()
+        if business_type and (area or zip_code):
             # Kick off background search, return immediately
             job_id = str(uuid.uuid4())
             _search_jobs[job_id] = {'status': 'running'}
-            t = threading.Thread(target=_run_search_job, args=(job_id, business_type, area), daemon=True)
+            t = threading.Thread(target=_run_search_job, args=(job_id, business_type, area, zip_code, radius), daemon=True)
             t.start()
             session['search_job_id'] = job_id
-            session['search_meta'] = {'business_type': business_type, 'area': area}
+            session['search_meta'] = {'business_type': business_type, 'area': area, 'zip_code': zip_code, 'radius': radius}
         else:
-            flash('Please enter a business type and select an area.', 'error')
+            flash('Please enter a business type and select an area or zip code.', 'error')
 
     # On GET: check if there's a running/completed job in session
     if request.method == 'GET':
@@ -978,6 +1015,8 @@ def ro_search():
         meta = session.get('search_meta', {})
         business_type = meta.get('business_type', '')
         area = meta.get('area', '')
+        zip_code = meta.get('zip_code', '')
+        radius = meta.get('radius', '')
         if job_id and _search_jobs.get(job_id, {}).get('status') == 'done':
             results = _search_jobs[job_id].get('results', [])
             session['last_search_results'] = results
@@ -987,6 +1026,8 @@ def ro_search():
             meta2 = session.get('last_search_meta', {})
             business_type = meta2.get('business_type', business_type)
             area = meta2.get('area', area)
+            zip_code = meta2.get('zip_code', zip_code)
+            radius = meta2.get('radius', radius)
 
     db = get_db()
     existing_names = {
@@ -994,13 +1035,18 @@ def ro_search():
         for row in db.execute('SELECT business_name FROM prospects').fetchall()
     }
 
+    all_predefined_zips = [z for zips in RO_SERVICE_ZIPCODES.values() for z, _ in zips]
     return render_template(
         'ro/search.html',
         results=results,
         business_type=business_type,
         area=area,
+        zip_code=zip_code,
+        radius=radius,
         service_states=RO_SERVICE_STATES,
         service_cities=RO_SERVICE_CITIES,
+        service_zipcodes=RO_SERVICE_ZIPCODES,
+        all_predefined_zips=all_predefined_zips,
         industries=RO_INDUSTRIES,
         existing_names=existing_names,
         job_id=job_id,
