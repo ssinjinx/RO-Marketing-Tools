@@ -54,19 +54,18 @@ def profile_prospect(website_url: str) -> dict:
         client = get_client()
         result = client.extract(
             [website_url],
-            {
-                'prompt': (
-                    'Extract contact information and any signals about industrial gas usage '
-                    'from this business website. Focus on: phone numbers, physical address, '
-                    'owner or manager names, any equipment or processes that use industrial gases '
-                    '(welding, brewing, medical, restaurants with draft beer, HVAC, manufacturing), '
-                    'and any current gas or industrial supply vendors mentioned.'
-                ),
-                'schema': PROSPECT_SCHEMA,
-            }
+            prompt=(
+                'Extract contact information and any signals about industrial gas usage '
+                'from this business website. Focus on: phone numbers, physical address, '
+                'owner or manager names, any equipment or processes that use industrial gases '
+                '(welding, brewing, medical, restaurants with draft beer, HVAC, manufacturing), '
+                'and any current gas or industrial supply vendors mentioned.'
+            ),
+            schema=PROSPECT_SCHEMA,
         )
-        data = result.get('data', {}) if isinstance(result, dict) else {}
-        # Strip empty strings and None values
+        data = getattr(result, 'data', None) or {}
+        if isinstance(data, list):
+            data = data[0] if data else {}
         return {k: v for k, v in data.items() if v}
     except Exception as e:
         return {'error': str(e)}
@@ -97,31 +96,18 @@ def snapshot_competitor(competitor_url: str) -> dict:
         client = get_client()
 
         # Step 1: map the site to find relevant pages
-        map_result = client.map_url(
-            competitor_url,
-            params={'search': 'service area products pricing locations news about'}
-        )
-        urls = map_result.get('links', [])[:15] if isinstance(map_result, dict) else []
-
-        # Always include the homepage
-        if competitor_url not in urls:
-            urls = [competitor_url] + urls[:14]
-
-        if not urls:
-            urls = [competitor_url]
-
-        # Step 2: extract structured intel from those pages
+        # Use homepage only — credit-efficient for free tier (1 credit per competitor)
         result = client.extract(
-            urls,
-            {
-                'prompt': (
-                    'Extract service areas, product lines, pricing information, physical locations, '
-                    'and any recent news or announcements from this industrial gas supplier website.'
-                ),
-                'schema': COMPETITOR_SCHEMA,
-            }
+            [competitor_url],
+            prompt=(
+                'Extract service areas, product lines, pricing information, physical locations, '
+                'and any recent news or announcements from this industrial gas supplier website.'
+            ),
+            schema=COMPETITOR_SCHEMA,
         )
-        data = result.get('data', {}) if isinstance(result, dict) else {}
+        data = getattr(result, 'data', None) or {}
+        if isinstance(data, list):
+            data = data[0] if data else {}
         return {k: v for k, v in data.items() if v}
     except Exception as e:
         return {'error': str(e)}

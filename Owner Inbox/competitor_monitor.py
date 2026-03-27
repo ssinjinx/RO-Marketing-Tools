@@ -19,6 +19,7 @@ Requirements:
 import os
 import sys
 import json
+import time
 import datetime
 import difflib
 
@@ -110,9 +111,12 @@ def run_monitor():
     competitors = load_competitors()
     print(f'Running competitor monitor for {len(competitors)} competitors...')
 
-    for comp in competitors:
+    for i, comp in enumerate(competitors):
         name = comp['name']
         url  = comp['url']
+        if i > 0:
+            print(f'  Waiting 15s (rate limit)...')
+            time.sleep(15)
         print(f'  Scanning {name} ({url})...')
 
         new_data = snapshot_competitor(url)

@@ -1476,6 +1476,69 @@ Keep it warm, direct, and under 200 words. No fluff."""
         return jsonify({'error': str(e)}), 500
 
 
+# ─── Competitor Profiles ──────────────────────────────────────────────────────
+
+@app.route('/competitors')
+def competitors():
+    import json as _json
+    snapshots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'competitor_snapshots')
+    competitors_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'competitors.json')
+
+    with open(competitors_file) as f:
+        comp_list = _json.load(f)['competitors']
+
+    cards = []
+    for comp in comp_list:
+        name = comp['name']
+        prefix = name.lower().replace(' ', '_')
+        # Find most recent snapshot
+        try:
+            files = sorted([
+                fn for fn in os.listdir(snapshots_dir)
+                if fn.startswith(prefix) and fn.endswith('.json')
+            ])
+        except FileNotFoundError:
+            files = []
+
+        if files:
+            with open(os.path.join(snapshots_dir, files[-1])) as f:
+                data = _json.load(f)
+            snapshot_date = files[-1].replace(prefix + '_', '').replace('.json', '')
+            # Format date
+            try:
+                snapshot_date = datetime.datetime.strptime(snapshot_date, '%Y%m%d').strftime('%b %d, %Y')
+            except Exception:
+                pass
+        else:
+            data = {}
+            snapshot_date = None
+
+        cards.append({
+            'name': name,
+            'url': comp['url'],
+            'notes': comp.get('notes', ''),
+            'snapshot_date': snapshot_date,
+            'data': data,
+        })
+
+    return render_template('competitors.html', cards=cards)
+
+
+@app.route('/competitors/run-scan', methods=['POST'])
+def competitors_run_scan():
+    """Trigger a competitor monitor scan in the background."""
+    import subprocess
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'competitor_monitor.py')
+    subprocess.Popen(
+        ['python3', script],
+        stdout=open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reports', 'competitor_scan.log'), 'w'),
+        stderr=subprocess.STDOUT,
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+    )
+    flash('Competitor scan started — check back in a few minutes.', 'success')
+    return redirect(url_for('competitors'))
+
+
 CHAT_SYSTEM_PROMPT = """You are the orchestrator for Roberts Oxygen's marketing tools team.
 Roberts Oxygen is an industrial gas company (oxygen, CO2, nitrogen, and related products) serving businesses across the mid-Atlantic US.
 

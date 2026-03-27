@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <h1>Competitor Profiles</h1>
+    <form method="post" action="{{ url_for('competitors_run_scan') }}" style="margin:0;">
+        <button type="submit" class="btn btn-primary">&#8635; Run New Scan</button>
+    </form>
+</div>
+
+{% if not cards %}
+<p class="meta">No competitor data yet. Click <strong>Run New Scan</strong> to pull the latest intel.</p>
+{% endif %}
+
+<div class="competitor-grid">
+{% for card in cards %}
+<div class="competitor-card">
+    <div class="competitor-card-header">
+        <div>
+            <h2 class="competitor-name">{{ card.name }}</h2>
+            <div class="meta">{{ card.notes }}</div>
+        </div>
+        {% if card.snapshot_date %}
+        <span class="snapshot-badge">Updated {{ card.snapshot_date }}</span>
+        {% else %}
+        <span class="snapshot-badge no-data">No snapshot yet</span>
+        {% endif %}
+    </div>
+
+    <div class="competitor-url">
+        <a href="{{ card.url }}" target="_blank" rel="noopener">{{ card.url }}</a>
+    </div>
+
+    {% if card.data %}
+    <div class="competitor-fields">
+        {% if card.data.service_areas %}
+        <div class="comp-field">
+            <div class="comp-field-label">Service Areas</div>
+            <div class="comp-field-value">{{ card.data.service_areas }}</div>
+        </div>
+        {% endif %}
+
+        {% if card.data.product_list %}
+        <div class="comp-field">
+            <div class="comp-field-label">Products</div>
+            <div class="comp-field-value">{{ card.data.product_list }}</div>
+        </div>
+        {% endif %}
+
+        {% if card.data.specializations %}
+        <div class="comp-field">
+            <div class="comp-field-label">Specializations</div>
+            <div class="comp-field-value">{{ card.data.specializations }}</div>
+        </div>
+        {% endif %}
+
+        {% if card.data.locations %}
+        <div class="comp-field">
+            <div class="comp-field-label">Locations</div>
+            <div class="comp-field-value">{{ card.data.locations }}</div>
+        </div>
+        {% endif %}
+
+        {% if card.data.pricing_info %}
+        <div class="comp-field">
+            <div class="comp-field-label">Pricing Info</div>
+            <div class="comp-field-value">{{ card.data.pricing_info }}</div>
+        </div>
+        {% endif %}
+
+        {% if card.data.recent_news %}
+        <div class="comp-field">
+            <div class="comp-field-label">Recent News</div>
+            <div class="comp-field-value">{{ card.data.recent_news }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="comp-no-data">No snapshot data available — run a scan to populate this card.</div>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<style>
+.competitor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+.competitor-card {
+    background: var(--surface, #1e1e2e);
+    border: 1px solid var(--border, #333);
+    border-radius: 10px;
+    padding: 20px;
+}
+.competitor-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.competitor-name {
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.snapshot-badge {
+    font-size: 0.72rem;
+    background: #1a3a2a;
+    color: #4caf89;
+    border: 1px solid #2a5a3a;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.snapshot-badge.no-data {
+    background: #2a2a1a;
+    color: #888;
+    border-color: #444;
+}
+.competitor-url {
+    margin-bottom: 14px;
+    font-size: 0.82rem;
+}
+.competitor-url a {
+    color: #6ab4f0;
+    text-decoration: none;
+}
+.competitor-url a:hover { text-decoration: underline; }
+.competitor-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.comp-field {
+    border-left: 3px solid #3a5a8a;
+    padding-left: 12px;
+}
+.comp-field-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 3px;
+}
+.comp-field-value {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #ccc;
+}
+.comp-no-data {
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+    padding: 10px 0;
+}
+</style>
+{% endblock %}
