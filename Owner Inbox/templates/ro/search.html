@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block page_title %}Search Prospects{% endblock %}
 {% block content %}
 <div class="page-header">
     <h1>Prospect Search</h1>
@@ -18,6 +19,34 @@
                     <option value="{{ city }}" {% if area == city %}selected{% endif %}>{{ city }}</option>
                 {% endfor %}
             </optgroup>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Zip Code <span style="font-weight:400; color:var(--text-muted, #888);">(optional — overrides area above)</span></label>
+        <select name="zip_code" id="zipCodeSelect" onchange="handleZipChange(this)">
+            <option value="">— Select a zip code —</option>
+            {% for state in service_states %}
+            <optgroup label="{{ state }}">
+                {% for zc in service_zipcodes[state] %}
+                    <option value="{{ zc[0] }}" {% if zip_code == zc[0] %}selected{% endif %}>{{ zc[0] }} — {{ zc[1] }}</option>
+                {% endfor %}
+            </optgroup>
+            {% endfor %}
+            <option value="__custom__" {% if zip_code and zip_code not in all_predefined_zips %}selected{% endif %}>Other (enter zip)…</option>
+        </select>
+        <input type="text" id="customZip" name="zip_code_custom"
+               placeholder="5-digit zip code"
+               value="{{ zip_code if zip_code and zip_code not in all_predefined_zips else '' }}"
+               maxlength="5" pattern="\d{5}"
+               style="margin-top:8px; width:140px; display:{% if zip_code and zip_code not in all_predefined_zips %}block{% else %}none{% endif %};">
+    </div>
+    <div class="form-group">
+        <label>Radius <span style="font-weight:400; color:var(--text-muted, #888);">(applies when zip code is set)</span></label>
+        <select name="radius">
+            <option value="">— No radius filter —</option>
+            {% for r in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] %}
+                <option value="{{ r }}" {% if radius == r|string %}selected{% endif %}>{{ r }} miles</option>
+            {% endfor %}
         </select>
     </div>
     <div class="form-group">
@@ -42,7 +71,9 @@
 <!-- Running indicator -->
 {% if job_status == 'running' %}
 <div id="searchProgress" style="margin:24px 0; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; text-align:center;">
-    <div style="font-size:1rem; font-weight:600; margin-bottom:8px;">Searching Google Maps for <strong>{{ business_type }}</strong> in <strong>{{ area }}</strong>…</div>
+    <div style="font-size:1rem; font-weight:600; margin-bottom:8px;">Searching Google Maps for <strong>{{ business_type }}</strong>
+        {% if zip_code %}near <strong>{{ zip_code }}</strong>{% if radius %} within <strong>{{ radius }} miles</strong>{% endif %}
+        {% else %}in <strong>{{ area }}</strong>{% endif %}…</div>
     <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">This can take 1–2 minutes for up to 100 results. Hang tight.</div>
     <div class="progress-bar-wrap" style="background:#2a2a3a;border-radius:99px;height:8px;max-width:400px;margin:0 auto;">
         <div id="progressBar" style="height:8px;border-radius:99px;background:#6ab4f0;width:5%;transition:width 1s ease;"></div>
@@ -91,7 +122,9 @@
     {% else %}
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
             <p class="meta" style="margin:0;">
-                {{ results|length }} results for <strong>{{ business_type }}</strong> in <strong>{{ area }}</strong>
+                {{ results|length }} results for <strong>{{ business_type }}</strong>
+                {% if zip_code %}near <strong>{{ zip_code }}</strong>{% if radius %} within <strong>{{ radius }} miles</strong>{% endif %}
+                {% else %}in <strong>{{ area }}</strong>{% endif %}
             </p>
             <form method="POST" action="{{ url_for('ro_save_all_results') }}" style="margin:0;">
                 <button type="submit" class="btn-success">&#8659; Save All New to Database</button>
@@ -165,6 +198,17 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
         sel.name = 'business_type';
         custom.name = 'business_type_custom';
     }
+
+    const zipSel = document.getElementById('zipCodeSelect');
+    const customZip = document.getElementById('customZip');
+    if (zipSel.value === '__custom__') {
+        zipSel.name = '';
+        customZip.name = 'zip_code';
+    } else {
+        zipSel.name = 'zip_code';
+        customZip.name = 'zip_code_custom';
+    }
+
     document.getElementById('searchBtn').textContent = 'Starting search…';
     document.getElementById('searchBtn').disabled = true;
 });
@@ -176,6 +220,16 @@ function handleIndustryChange(sel) {
         custom.focus();
     } else {
         custom.style.display = 'none';
+    }
+}
+
+function handleZipChange(sel) {
+    const customZip = document.getElementById('customZip');
+    if (sel.value === '__custom__') {
+        customZip.style.display = 'block';
+        customZip.focus();
+    } else {
+        customZip.style.display = 'none';
     }
 }
 </script>

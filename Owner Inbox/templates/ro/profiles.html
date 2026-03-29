@@ -1,8 +1,23 @@
 {% extends "base.html" %}
+{% block page_title %}RO Profiles{% endblock %}
 {% block content %}
 <div class="page-header">
     <h1>Customer Profiles</h1>
     <a href="{{ url_for('ro_profile_add') }}" class="btn-primary">+ Add Prospect</a>
+</div>
+
+{# ── Industry tabs ── #}
+<div class="ind-tabs">
+    <a href="{{ url_for('ro_profiles') }}"
+       class="ind-tab {% if not current_industry %}ind-tab-active{% endif %}">
+        All <span class="ind-count">{{ total if not current_industry else '' }}</span>
+    </a>
+    {% for ind, cnt in industries %}
+    <a href="{{ url_for('ro_profiles', industry=ind) }}"
+       class="ind-tab {% if current_industry == ind %}ind-tab-active{% endif %}">
+        {{ ind | title }} <span class="ind-count">{{ cnt }}</span>
+    </a>
+    {% endfor %}
 </div>
 
 {% if prospects %}
@@ -45,9 +60,73 @@
     </tbody>
 </table>
 </div>
-{% else %}
-<div class="empty-state">
-    No prospects yet. Use <a href="{{ url_for('ro_search') }}">Prospect Search</a> to find businesses or <a href="{{ url_for('ro_profile_add') }}">add one manually</a>.
+
+{# ── Pagination ── #}
+{% if total_pages > 1 %}
+<div class="ind-pagination">
+    {% if current_page > 1 %}
+    <a href="{{ url_for('ro_profiles', industry=current_industry, page=current_page - 1) }}" class="btn-secondary btn-sm">&laquo; Prev</a>
+    {% endif %}
+    <span class="ind-page-info">Page {{ current_page }} of {{ total_pages }}</span>
+    {% if current_page < total_pages %}
+    <a href="{{ url_for('ro_profiles', industry=current_industry, page=current_page + 1) }}" class="btn-secondary btn-sm">Next &raquo;</a>
+    {% endif %}
 </div>
 {% endif %}
+
+{% else %}
+<div class="empty-state">
+    {% if current_industry %}
+        No prospects in <strong>{{ current_industry | title }}</strong>.
+    {% else %}
+        No prospects yet. Use <a href="{{ url_for('ro_search') }}">Prospect Search</a> to find businesses or <a href="{{ url_for('ro_profile_add') }}">add one manually</a>.
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.ind-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 18px;
+}
+.ind-tab {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border, #333);
+    background: var(--surface, #1e1e2e);
+    color: var(--text-muted, #888);
+    font-size: 0.82rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+}
+.ind-tab:hover {
+    border-color: #6ab4f0;
+    color: #6ab4f0;
+}
+.ind-tab-active {
+    background: #1a3050;
+    border-color: #6ab4f0;
+    color: #6ab4f0;
+    font-weight: 600;
+}
+.ind-count {
+    font-size: 0.74rem;
+    opacity: 0.75;
+    margin-left: 3px;
+}
+.ind-pagination {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: center;
+}
+.ind-page-info {
+    font-size: 0.85rem;
+    color: var(--text-muted, #888);
+}
+</style>
 {% endblock %}
