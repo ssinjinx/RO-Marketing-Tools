@@ -1,17 +1,27 @@
 {% extends 'base.html' %}
+{% block page_title %}Dashboard{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Dashboard</h1>
+
+<!-- Floating particles (CSS-animated, behind content) -->
+<div class="particle-field" aria-hidden="true">
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
 </div>
 
-<div class="stat-grid">
+<div class="stat-grid" style="position:relative;z-index:1;">
     <div class="stat-card">
         <div class="count">{{ counts.files }}</div>
         <div class="label">Files in Catalog</div>
     </div>
     <div class="stat-card">
         <div class="count">{{ counts.articles }}</div>
-        <div class="label">Knowledge Base Articles</div>
+        <div class="label">KB Articles</div>
     </div>
     <div class="stat-card">
         <div class="count">{{ counts.contacts }}</div>
@@ -43,8 +53,8 @@
     </div>
 </div>
 
-<h2 class="section-title">Team</h2>
-<div class="agent-grid">
+<h2 class="section-title" style="position:relative;z-index:1;">Team</h2>
+<div class="agent-grid" style="position:relative;z-index:1;">
 {% for agent in agents %}
 <div class="agent-card">
     <div>
@@ -76,6 +86,5 @@
 </div>
 {% endfor %}
 </div>
-
 
 {% endblock %}
