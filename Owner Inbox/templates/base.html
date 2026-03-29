@@ -4,105 +4,134 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RO Marketing Tools</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<nav>
-    <a href="{{ url_for('index') }}" class="nav-brand">Owner Inbox</a>
-    <input type="checkbox" id="nav-toggle" class="nav-toggle-input">
-    <label for="nav-toggle" class="nav-toggle-label">&#9776;</label>
-    <div class="nav-links">
-        <a href="{{ url_for('index') }}">Dashboard</a>
-        <a href="{{ url_for('files_list') }}">Files</a>
-        <a href="{{ url_for('kb_list') }}">Knowledge Base</a>
-        <span class="nav-group">
-            <span class="nav-group-label">CRM &#9662;</span>
-            <div class="dropdown">
-                <a href="{{ url_for('contacts_list') }}">Contacts</a>
-                <a href="{{ url_for('leads_list') }}">Leads</a>
-                <a href="{{ url_for('deals_list') }}">Deals</a>
-                <a href="{{ url_for('pipeline') }}">Pipeline</a>
-            </div>
-        </span>
-        <span class="nav-group">
-            <span class="nav-group-label">RO Leads &#9662;</span>
-            <div class="dropdown">
-                <a href="{{ url_for('ro_info') }}">Info</a>
-                <a href="{{ url_for('ro_search') }}">Search</a>
-                <a href="{{ url_for('ro_profiles') }}">Profiles</a>
-                <a href="{{ url_for('ro_contacts') }}">Contacts</a>
-                <a href="{{ url_for('ro_pipeline') }}">Pipeline</a>
-            </div>
-        </span>
-        <a href="{{ url_for('projects_list') }}">Projects</a>
-        <a href="{{ url_for('competitors') }}">Competitors</a>
-        <a href="https://comfyui23.siliconsoul.cloud" target="_blank">Image Creator</a>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <a href="{{ url_for('index') }}" class="sidebar-logo">
+      <div class="sidebar-logo-mark">RO</div>
+      <div class="sidebar-logo-text">
+        Owner Inbox
+        <small>Roberts Oxygen</small>
+      </div>
+    </a>
+
+    <div class="sidebar-nav">
+      <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">Dashboard</a>
+
+      <div class="sidebar-section-label">CRM</div>
+      <a href="{{ url_for('contacts_list') }}" class="{{ 'active' if request.endpoint in ['contacts_list','contacts_new','contacts_view','contacts_edit'] else '' }}">Contacts</a>
+      <a href="{{ url_for('leads_list') }}" class="{{ 'active' if request.endpoint in ['leads_list','leads_new','leads_edit'] else '' }}">Leads</a>
+      <a href="{{ url_for('deals_list') }}" class="{{ 'active' if request.endpoint in ['deals_list','deals_new','deals_edit'] else '' }}">Deals</a>
+      <a href="{{ url_for('pipeline') }}" class="{{ 'active' if request.endpoint == 'pipeline' else '' }}">Pipeline</a>
+
+      <div class="sidebar-section-label">RO Leads</div>
+      <a href="{{ url_for('ro_profiles') }}" class="{{ 'active' if request.endpoint in ['ro_profiles','ro_profile_view','ro_profile_add','ro_profile_edit'] else '' }}">Profiles</a>
+      <a href="{{ url_for('ro_contacts') }}" class="{{ 'active' if request.endpoint in ['ro_contacts','ro_contact_add','ro_contact_edit'] else '' }}">Contacts</a>
+      <a href="{{ url_for('ro_pipeline') }}" class="{{ 'active' if request.endpoint == 'ro_pipeline' else '' }}">Pipeline</a>
+      <a href="{{ url_for('ro_search') }}" class="{{ 'active' if request.endpoint == 'ro_search' else '' }}">Search</a>
+      <a href="{{ url_for('ro_info') }}" class="{{ 'active' if request.endpoint == 'ro_info' else '' }}">RO Info</a>
+
+      <div class="sidebar-section-label">Work</div>
+      <a href="{{ url_for('projects_list') }}" class="{{ 'active' if request.endpoint in ['projects_list','projects_view','projects_new','projects_edit','tasks_new','tasks_edit'] else '' }}">Projects</a>
+      <a href="{{ url_for('files_list') }}" class="{{ 'active' if request.endpoint in ['files_list','files_new','files_view','files_edit'] else '' }}">Files</a>
+      <a href="{{ url_for('kb_list') }}" class="{{ 'active' if request.endpoint in ['kb_list','kb_new','kb_view','kb_edit'] else '' }}">Knowledge Base</a>
+      <a href="{{ url_for('competitors') }}" class="{{ 'active' if request.endpoint == 'competitors' else '' }}">Competitors</a>
+
+      <div class="sidebar-section-label">Tools</div>
+      <a href="https://comfyui23.siliconsoul.cloud" target="_blank">Image Creator ↗</a>
     </div>
-</nav>
+  </nav>
 
-<div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
+  <!-- Mobile overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="topbar">
+      <button class="hamburger" onclick="openSidebar()" aria-label="Open menu">&#9776;</button>
+      <h1 class="page-title">{% block page_title %}Owner Inbox{% endblock %}</h1>
+    </div>
+
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
-            <div class="flash flash-{{ category }}">{{ message }}</div>
+          <div class="flash flash-{{ category }}">{{ message }}</div>
         {% endfor %}
-    {% endwith %}
+      {% endwith %}
 
-    {% block content %}{% endblock %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
 </div>
+
 <!-- Floating AI Chat -->
 <button id="chatToggleBtn" onclick="toggleChat()" title="AI Assistant" style="
     position:fixed; bottom:24px; right:24px; z-index:1000;
     width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
-    background:#6ab4f0; color:#fff; font-size:1.4rem; box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    background:#1a5c35; color:#fff; font-size:1.4rem; box-shadow:0 4px 16px rgba(0,0,0,0.4);
     display:flex; align-items:center; justify-content:center;">&#128172;</button>
 
 <div id="chatWidget" style="display:none; position:fixed; bottom:88px; right:24px; z-index:999;
-    width:360px; height:480px; background:#1e1e2e; border:1px solid #333; border-radius:12px;
-    box-shadow:0 8px 32px rgba(0,0,0,0.4); display:none; flex-direction:column; overflow:hidden;">
+    width:360px; height:480px; background:#0c1a10; border:1px solid #1a3a20; border-radius:12px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.5); display:none; flex-direction:column; overflow:hidden;">
 
-    <div style="padding:12px 16px; background:#16162a; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:600; font-size:0.95rem;">AI Assistant</span>
+    <div style="padding:12px 16px; background:#070f09; border-bottom:1px solid #1a3a20; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:600; font-size:0.9rem; color:#f0fff4;">AI Assistant</span>
         <div style="display:flex; align-items:center; gap:8px;">
             <div class="model-toggle" id="chatModelToggle">
                 <button class="model-btn active" data-model="claude" onclick="setChatModel('claude',this)">Claude</button>
                 <button class="model-btn" data-model="minimax" onclick="setChatModel('minimax',this)">MiniMax</button>
             </div>
-            <button onclick="toggleChat()" style="background:none;border:none;color:#888;cursor:pointer;font-size:1.1rem;">✕</button>
+            <button onclick="toggleChat()" style="background:none;border:none;color:#5a8a6a;cursor:pointer;font-size:1.1rem;">✕</button>
         </div>
     </div>
 
     <div id="chatMessages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;"></div>
 
-    <div style="padding:10px; border-top:1px solid #333; display:flex; gap:8px;">
+    <div style="padding:10px; border-top:1px solid #1a3a20; display:flex; gap:8px;">
         <input id="chatInput" type="text" placeholder="Ask anything…" style="
-            flex:1; padding:8px 12px; border-radius:8px; border:1px solid #444;
-            background:#12121e; color:#fff; font-size:0.88rem; outline:none;"
+            flex:1; padding:8px 12px; border-radius:8px; border:1px solid #1a3a20;
+            background:#070f09; color:#f0fff4; font-size:0.85rem; outline:none;"
             onkeydown="if(event.key==='Enter')sendChat()">
         <button onclick="sendChat()" style="
             padding:8px 14px; border-radius:8px; border:none; cursor:pointer;
-            background:#6ab4f0; color:#fff; font-size:0.88rem; font-weight:600;">Send</button>
+            background:#1a5c35; color:#fff; font-size:0.82rem; font-weight:600;">Send</button>
     </div>
 </div>
 
 <style>
-.model-toggle { display:flex; background:#0d0d1a; border-radius:6px; padding:2px; gap:2px; }
+.model-toggle { display:flex; background:#070f09; border-radius:6px; padding:2px; gap:2px; }
 .model-btn {
     padding:3px 10px; border:none; border-radius:4px; cursor:pointer;
-    font-size:0.75rem; font-weight:600; background:transparent; color:#888; transition:all .15s;
+    font-size:0.72rem; font-weight:600; background:transparent; color:#5a8a6a; transition:all .15s;
 }
-.model-btn.active { background:#6ab4f0; color:#fff; }
+.model-btn.active { background:#1a5c35; color:#fff; }
 </style>
 
 <script>
 let _chatModel = localStorage.getItem('preferredModel') || 'claude';
 let _chatHistory = [];
 
+function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('open');
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
 function toggleChat() {
     const w = document.getElementById('chatWidget');
     w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
     if (w.style.display === 'flex') {
-        // Restore model preference
         const saved = localStorage.getItem('preferredModel') || 'claude';
         setChatModel(saved, document.querySelector(`#chatModelToggle [data-model="${saved}"]`));
         document.getElementById('chatInput').focus();
@@ -122,7 +151,7 @@ function appendMsg(role, text) {
     const div = document.createElement('div');
     div.style.cssText = `display:flex; justify-content:${role==='user'?'flex-end':'flex-start'};`;
     const bubble = document.createElement('div');
-    bubble.style.cssText = `max-width:85%; padding:8px 12px; border-radius:10px; font-size:0.85rem; line-height:1.5; white-space:pre-wrap; word-break:break-word; background:${role==='user'?'#6ab4f0':'#2a2a3e'}; color:${role==='user'?'#fff':'#ccc'};`;
+    bubble.style.cssText = `max-width:85%; padding:8px 12px; border-radius:10px; font-size:0.82rem; line-height:1.5; white-space:pre-wrap; word-break:break-word; background:${role==='user'?'#1a5c35':'rgba(255,255,255,0.06)'}; color:${role==='user'?'#fff':'#c8e6ce'};`;
     bubble.textContent = text;
     div.appendChild(bubble);
     box.appendChild(div);
@@ -139,7 +168,7 @@ async function sendChat() {
 
     const thinking = document.createElement('div');
     thinking.id = 'chatThinking';
-    thinking.style.cssText = 'color:#888; font-size:0.8rem; padding:4px 8px;';
+    thinking.style.cssText = 'color:#5a8a6a; font-size:0.78rem; padding:4px 8px;';
     thinking.textContent = _chatModel === 'minimax' ? 'MiniMax thinking…' : 'Claude thinking…';
     document.getElementById('chatMessages').appendChild(thinking);
 
@@ -163,5 +192,6 @@ async function sendChat() {
     }
 }
 </script>
+
 </body>
 </html>
