@@ -1464,6 +1464,128 @@ def find_with_hunter(website_url):
         return []
 
 
+def hunter_verify_email(email):
+    """Verify a single email via Hunter.io. Returns {status, score}."""
+    api_key = os.environ.get('HUNTER_API_KEY', '')
+    if not api_key:
+        return {'status': 'unknown', 'score': 0}
+    try:
+        r = http_requests.get(
+            'https://api.hunter.io/v2/email-verifier',
+            params={'email': email, 'api_key': api_key},
+            timeout=15
+        )
+        if r.status_code != 200:
+            return {'status': 'unknown', 'score': 0}
+        data = r.json().get('data', {})
+        return {
+            'status': data.get('status', 'unknown'),
+            'score': data.get('score', 0),
+        }
+    except Exception:
+        return {'status': 'unknown', 'score': 0}
+
+
+def hunter_find_email(first_name, last_name, domain):
+    """Find a person's email via Hunter.io Email Finder. Returns {email, confidence} or None."""
+    api_key = os.environ.get('HUNTER_API_KEY', '')
+    if not api_key or not first_name or not domain:
+        return None
+    try:
+        r = http_requests.get(
+            'https://api.hunter.io/v2/email-finder',
+            params={
+                'domain': domain,
+                'first_name': first_name,
+                'last_name': last_name or '',
+                'api_key': api_key,
+            },
+            timeout=15
+        )
+        if r.status_code != 200:
+            return None
+        data = r.json().get('data', {})
+        email = data.get('email')
+        if not email:
+            return None
+        return {'email': email.lower(), 'confidence': data.get('score', 0)}
+    except Exception:
+        return None
+
+
+def hunter_discover(keywords, location, limit=10):
+    """Discover companies via Hunter.io. Returns list of {name, domain, website, industry, size}."""
+    api_key = os.environ.get('HUNTER_API_KEY', '')
+    if not api_key or not keywords:
+        return []
+    try:
+        r = http_requests.get(
+            'https://api.hunter.io/v2/companies/search',
+            params={
+                'keywords': keywords,
+                'location': location or '',
+                'limit': limit,
+                'api_key': api_key,
+            },
+            timeout=15
+        )
+        if r.status_code != 200:
+            return []
+        companies = r.json().get('data', {}).get('companies', [])
+        results = []
+        for c in companies:
+            domain = c.get('domain', '')
+            results.append({
+                'name': c.get('name', ''),
+                'domain': domain,
+                'website': f'https://{domain}' if domain else '',
+                'industry': c.get('industry', ''),
+                'size': c.get('size', ''),
+                'hunter_only': True,
+                'hunter_enriched': False,
+            })
+        return results
+    except Exception:
+        return []
+
+
+_hunter_account_cache = {'data': None, 'at': 0}
+
+def hunter_account_info():
+    """Return Hunter.io account usage. Cached for 5 minutes."""
+    import time
+    now = time.time()
+    if _hunter_account_cache['data'] and now - _hunter_account_cache['at'] < 300:
+        return _hunter_account_cache['data']
+    api_key = os.environ.get('HUNTER_API_KEY', '')
+    empty = {'searches_used': 0, 'searches_left': 0, 'verifications_used': 0, 'verifications_left': 0}
+    if not api_key:
+        return empty
+    try:
+        r = http_requests.get(
+            'https://api.hunter.io/v2/account',
+            params={'api_key': api_key},
+            timeout=10
+        )
+        if r.status_code != 200:
+            return empty
+        d = r.json().get('data', {})
+        requests_data = d.get('requests', {})
+        searches = requests_data.get('searches', {})
+        verifications = requests_data.get('verifications', {})
+        result = {
+            'searches_used': searches.get('used', 0),
+            'searches_left': searches.get('available', 0),
+            'verifications_used': verifications.get('used', 0),
+            'verifications_left': verifications.get('available', 0),
+        }
+        _hunter_account_cache['data'] = result
+        _hunter_account_cache['at'] = now
+        return result
+    except Exception:
+        return empty
+
+
 def get_mx_host(domain):
     """Return the highest-priority MX hostname for a domain, or None."""
     try:
