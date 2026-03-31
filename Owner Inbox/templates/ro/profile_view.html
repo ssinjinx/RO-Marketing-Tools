@@ -9,7 +9,7 @@
     </div>
 </div>
 
-<div class="detail-card">
+<div class="detail-card animate-fade-in-up">
     <form method="POST" action="{{ url_for('ro_profile_edit', prospect_id=prospect.id) }}">
         <div class="detail-grid">
             <div class="form-group">
@@ -138,7 +138,18 @@
             </td>
             <td>{{ c.name or '—' }}</td>
             <td>{{ c.title or '—' }}</td>
-            <td>{% if c.email %}<a href="mailto:{{ c.email }}">{{ c.email }}</a>{% else %}—{% endif %}</td>
+            <td>
+              {% if c.email %}
+                <a href="mailto:{{ c.email }}">{{ c.email }}</a>
+                {% if c.verification_status == 'valid' %}
+                  <span title="Verified by Hunter.io" style="color:#4caf50;font-size:0.8rem;margin-left:4px;">✓ Verified</span>
+                {% elif c.verification_status == 'accept_all' %}
+                  <span title="Server accepts all mail — may not be monitored" style="color:#f0a500;font-size:0.8rem;margin-left:4px;">~ Accept All</span>
+                {% elif c.verification_status == 'invalid' %}
+                  <span title="Invalid email — likely to bounce" style="color:#e05a5a;font-size:0.8rem;margin-left:4px;">✗ Invalid</span>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
             <td>{{ c.phone or '—' }}</td>
             <td>{% if c.linkedin_url %}<a href="{{ c.linkedin_url }}" target="_blank" rel="noopener">LinkedIn</a>{% else %}—{% endif %}</td>
             <td class="actions">
