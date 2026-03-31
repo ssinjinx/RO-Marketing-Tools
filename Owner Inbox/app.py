@@ -1741,19 +1741,32 @@ def ro_find_contacts(prospect_id):
     if not prospect['website']:
         return jsonify({'error': 'No website on file for this prospect'}), 400
 
-    # 1. Hunter.io
+    from urllib.parse import urlparse
+
+    # 1. Hunter.io domain search
     raw_contacts = find_with_hunter(prospect['website'])
     source = 'hunter'
 
-    # 2. Website scraper
+    # 2. Hunter Email Finder fallback — if no named contacts from domain search
+    if not any(c['name'] for c in raw_contacts):
+        parsed = urlparse(prospect['website'])
+        domain = (parsed.netloc or parsed.path).lstrip('www.')
+        name_parts = (prospect['business_name'] or '').split()
+        first = name_parts[0] if name_parts else ''
+        last = name_parts[1] if len(name_parts) > 1 else ''
+        found = hunter_find_email(first, last, domain)
+        if found:
+            raw_contacts = [{'email': found['email'], 'name': prospect['business_name'] or '', 'title': ''}]
+            source = 'hunter_finder'
+
+    # 3. Website scraper
     if not raw_contacts:
         emails = find_best_contacts(prospect['website'])
         raw_contacts = [{'email': e, 'name': '', 'title': ''} for e in emails]
         source = 'scrape'
 
-    # 3. Email format guesser + SMTP verification
+    # 4. Email format guesser + SMTP verification
     if not raw_contacts:
-        from urllib.parse import urlparse
         parsed = urlparse(prospect['website'])
         domain = (parsed.netloc or parsed.path).lstrip('www.')
         mx_host = get_mx_host(domain)
@@ -1766,15 +1779,32 @@ def ro_find_contacts(prospect_id):
     saved = []
     for c in raw_contacts:
         email = c['email']
+        # Verify email via Hunter
+        verification = hunter_verify_email(email)
+        verified = verification['status'] in ('valid', 'accept_all')
+
         existing = db.execute('SELECT id FROM ro_contacts WHERE prospect_id=? AND email=?', (prospect_id, email)).fetchone()
         if not existing:
             db.execute(
-                'INSERT INTO ro_contacts (prospect_id, name, title, email, is_suggested) VALUES (?, ?, ?, ?, 1)',
-                (prospect_id, c['name'], c['title'], email)
+                'INSERT INTO ro_contacts (prospect_id, name, title, email, is_suggested, verified, verification_status) VALUES (?, ?, ?, ?, 1, ?, ?)',
+                (prospect_id, c['name'], c['title'], email, 1 if verified else 0, verification['status'])
+            )
+            db.commit()
+        else:
+            db.execute(
+                'UPDATE ro_contacts SET verified=?, verification_status=? WHERE prospect_id=? AND email=?',
+                (1 if verified else 0, verification['status'], prospect_id, email)
             )
             db.commit()
         contact = db.execute('SELECT * FROM ro_contacts WHERE prospect_id=? AND email=?', (prospect_id, email)).fetchone()
-        saved.append({'id': contact['id'], 'email': email, 'name': contact['name'] or '', 'title': contact['title'] or ''})
+        saved.append({
+            'id': contact['id'],
+            'email': email,
+            'name': contact['name'] or '',
+            'title': contact['title'] or '',
+            'verified': bool(contact['verified']),
+            'verification_status': contact['verification_status'] or 'unverified',
+        })
 
     return jsonify({'contacts': saved, 'source': source})
 
