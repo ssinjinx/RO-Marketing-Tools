@@ -934,47 +934,117 @@ _search_jobs = {}
 
 
 def _run_search_job(job_id, business_type, area, zip_code=None, radius=None):
-    """Background thread: runs Apify and stores results in _search_jobs."""
+    """Background thread: runs Apify + Hunter Discover in parallel and merges results."""
     token = os.environ.get('APIFY_TOKEN', '')
     if not token:
         _search_jobs[job_id] = {'status': 'error', 'error': 'APIFY_TOKEN not set'}
         return
-    try:
-        client = ApifyClient(token)
-        if zip_code:
-            if radius:
-                search_str = f"{business_type} near {zip_code} within {radius} miles"
+
+    apify_results = []
+    hunter_results = []
+    apify_error = None
+
+    def run_apify():
+        nonlocal apify_results, apify_error
+        try:
+            client = ApifyClient(token)
+            if zip_code:
+                search_str = f"{business_type} near {zip_code} within {radius} miles" if radius else f"{business_type} near {zip_code}"
             else:
-                search_str = f"{business_type} near {zip_code}"
-        else:
-            search_str = f"{business_type} in {area}"
-        run_input = {
-            "searchStringsArray": [search_str],
-            "maxCrawledPlacesPerSearch": 100,
-            "maxCrawledPlaces": 100,
-            "language": "en",
-            "countryCode": "us",
-        }
-        run = client.actor("compass/crawler-google-places").call(run_input=run_input)
-        results = []
-        for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            results.append({
-                "title": item.get("title", ""),
-                "url": item.get("website", ""),
-                "display_url": item.get("website", ""),
-                "snippet": f"{item.get('address', '')} | {item.get('phoneUnformatted', '')} | Rating: {item.get('totalScore', 'N/A')}",
-                "address": item.get("address", ""),
-                "phone": item.get("phoneUnformatted", ""),
-                "rating": item.get("totalScore", ""),
-                "category": item.get("categoryName", ""),
-            })
-        _search_jobs[job_id] = {
-            'status': 'done',
-            'results': results,
-            'meta': {'business_type': business_type, 'area': area},
-        }
-    except Exception as e:
-        _search_jobs[job_id] = {'status': 'error', 'error': str(e)}
+                search_str = f"{business_type} in {area}"
+            run_input = {
+                "searchStringsArray": [search_str],
+                "maxCrawledPlacesPerSearch": 100,
+                "maxCrawledPlaces": 100,
+                "language": "en",
+                "countryCode": "us",
+            }
+            run = client.actor("compass/crawler-google-places").call(run_input=run_input)
+            for item in client.dataset(run["defaultDatasetId"]).iterate_items():
+                apify_results.append({
+                    "title": item.get("title", ""),
+                    "url": item.get("website", ""),
+                    "display_url": item.get("website", ""),
+                    "snippet": f"{item.get('address', '')} | {item.get('phoneUnformatted', '')} | Rating: {item.get('totalScore', 'N/A')}",
+                    "address": item.get("address", ""),
+                    "phone": item.get("phoneUnformatted", ""),
+                    "rating": item.get("totalScore", ""),
+                    "category": item.get("categoryName", ""),
+                    "hunter_enriched": False,
+                    "hunter_only": False,
+                })
+        except Exception as e:
+            apify_error = str(e)
+
+    def run_hunter():
+        nonlocal hunter_results
+        location = area or zip_code or ''
+        hunter_results = hunter_discover(business_type, location, limit=10)
+
+    t_apify = threading.Thread(target=run_apify, daemon=True)
+    t_hunter = threading.Thread(target=run_hunter, daemon=True)
+    t_apify.start()
+    t_hunter.start()
+    t_apify.join()
+    t_hunter.join()
+
+    if apify_error and not hunter_results:
+        _search_jobs[job_id] = {'status': 'error', 'error': apify_error}
+        return
+
+    # Build Hunter lookup by domain
+    from urllib.parse import urlparse
+
+    def extract_domain(url):
+        if not url:
+            return ''
+        if not url.startswith('http'):
+            url = 'https://' + url
+        return urlparse(url).netloc.lstrip('www.').lower()
+
+    hunter_by_domain = {}
+    for h in hunter_results:
+        d = h.get('domain', '').lstrip('www.').lower()
+        if d:
+            hunter_by_domain[d] = h
+
+    # Mark Apify results as hunter_enriched where domains match
+    apify_domains_seen = set()
+    for r in apify_results:
+        d = extract_domain(r.get('url', ''))
+        apify_domains_seen.add(d)
+        if d and d in hunter_by_domain:
+            r['hunter_enriched'] = True
+            r['hunter_industry'] = hunter_by_domain[d].get('industry', '')
+            r['hunter_size'] = hunter_by_domain[d].get('size', '')
+
+    # Hunter-only results: not matched to any Apify result
+    hunter_only = [
+        h for h in hunter_results
+        if h.get('domain', '').lstrip('www.').lower() not in apify_domains_seen
+    ]
+    for h in hunter_only:
+        h['title'] = h.get('name', '')
+        h['url'] = h.get('website', '')
+        h['display_url'] = h.get('website', '')
+        h['snippet'] = f"Industry: {h.get('industry', '—')} | Size: {h.get('size', '—')}"
+        h['address'] = ''
+        h['phone'] = ''
+        h['rating'] = ''
+        h['category'] = h.get('industry', '')
+        h['hunter_only'] = True
+        h['hunter_enriched'] = False
+
+    # Order: hunter-enriched first, apify-only second, hunter-only last
+    enriched = [r for r in apify_results if r.get('hunter_enriched')]
+    apify_only = [r for r in apify_results if not r.get('hunter_enriched')]
+    results = enriched + apify_only + hunter_only
+
+    _search_jobs[job_id] = {
+        'status': 'done',
+        'results': results,
+        'meta': {'business_type': business_type, 'area': area},
+    }
 
 
 # ─── RO Leads: Routes ─────────────────────────────────────────────────────────
