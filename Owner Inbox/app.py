@@ -1727,6 +1727,11 @@ def ro_deep_profile(prospect_id):
     })
 
 
+@app.route('/ro/hunter/usage')
+def ro_hunter_usage():
+    return jsonify(hunter_account_info())
+
+
 @app.route('/ro/profiles/<int:prospect_id>/find-contacts', methods=['POST'])
 def ro_find_contacts(prospect_id):
     db = get_db()
