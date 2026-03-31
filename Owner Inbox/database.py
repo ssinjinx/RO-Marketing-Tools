@@ -11,13 +11,18 @@ def get_db():
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
         # Migrations: add columns if missing
-        existing = {row[1] for row in g.db.execute("PRAGMA table_info(ro_contacts)").fetchall()}
-        if 'verified' not in existing:
-            g.db.execute("ALTER TABLE ro_contacts ADD COLUMN verified INTEGER DEFAULT 0")
-            g.db.commit()
-        if 'verification_status' not in existing:
-            g.db.execute("ALTER TABLE ro_contacts ADD COLUMN verification_status TEXT DEFAULT 'unverified'")
-            g.db.commit()
+        tables = {row[0] for row in g.db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        if 'ro_contacts' in tables:
+            existing = {row[1] for row in g.db.execute("PRAGMA table_info(ro_contacts)").fetchall()}
+            changed = False
+            if 'verified' not in existing:
+                g.db.execute("ALTER TABLE ro_contacts ADD COLUMN verified INTEGER DEFAULT 0")
+                changed = True
+            if 'verification_status' not in existing:
+                g.db.execute("ALTER TABLE ro_contacts ADD COLUMN verification_status TEXT DEFAULT 'unverified'")
+                changed = True
+            if changed:
+                g.db.commit()
     return g.db
 
 
