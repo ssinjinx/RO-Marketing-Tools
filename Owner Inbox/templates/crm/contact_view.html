@@ -12,7 +12,7 @@
     </div>
 </div>
 
-<div class="detail-card">
+<div class="detail-card animate-fade-in-up">
     <div class="detail-grid">
         <div class="detail-field">
             <label>Email</label>
@@ -51,7 +51,7 @@
     <h2>Linked Leads</h2>
     <a href="{{ url_for('leads_new') }}" class="btn-secondary btn-sm">+ Add Lead</a>
 </div>
-<div class="table-wrapper">
+<div class="table-wrapper animate-fade-in" style="animation-delay: 0.15s;">
 <table>
     <thead>
         <tr><th>Source</th><th>Status</th><th>Value</th><th>Created</th><th>Actions</th></tr>
@@ -78,7 +78,7 @@
     <h2>Linked Deals</h2>
     <a href="{{ url_for('deals_new') }}" class="btn-secondary btn-sm">+ Add Deal</a>
 </div>
-<div class="table-wrapper">
+<div class="table-wrapper animate-fade-in" style="animation-delay: 0.3s;">
 <table>
     <thead>
         <tr><th>Title</th><th>Stage</th><th>Value</th><th>Close Date</th><th>Actions</th></tr>

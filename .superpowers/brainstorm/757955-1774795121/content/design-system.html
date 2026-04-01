@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design System — Dark Forest Refined</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0f0a;
+    color: #c8e6ce;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 28px 28px 80px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.4rem; color: #f0fff4; margin-bottom: 4px; }
+  .subtitle { color: #5a8a6a; font-size: 0.85rem; margin-bottom: 32px; }
+  h2 { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #2ecc71; margin-bottom: 14px; margin-top: 28px; }
+
+  /* Color palette */
+  .swatch-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .swatch {
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-width: 130px;
+    flex: 1;
+  }
+  .swatch-name { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .swatch-hex { font-size: 0.78rem; font-family: 'Courier New', monospace; opacity: 0.8; }
+  .swatch-use { font-size: 0.65rem; opacity: 0.6; margin-top: 4px; }
+
+  /* Type scale */
+  .type-row { display: flex; flex-direction: column; gap: 6px; }
+  .type-sample {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #1a3a20;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .type-meta { font-size: 0.6rem; color: #4a7a5a; font-family: monospace; min-width: 140px; flex-shrink: 0; }
+
+  /* Animations */
+  .anim-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .anim-card {
+    flex: 1;
+    min-width: 160px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #1a3a20;
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .anim-name { font-size: 0.72rem; font-weight: 700; color: #f0fff4; margin-bottom: 4px; }
+  .anim-desc { font-size: 0.65rem; color: #6db87e; margin-bottom: 10px; }
+  /* Demo elements */
+  .demo-glow-bar {
+    height: 3px; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #2ecc71, transparent);
+    animation: glowscan 2.5s linear infinite;
+    background-size: 200%;
+  }
+  @keyframes glowscan { 0%{background-position:200%} 100%{background-position:-200%} }
+  .demo-shimmer {
+    height: 28px; border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #1a3a20;
+    position: relative; overflow: hidden;
+  }
+  .demo-shimmer::after {
+    content:''; position:absolute; top:0;left:0;right:0;bottom:0;
+    background: linear-gradient(90deg,transparent 0%,rgba(46,204,113,0.15) 50%,transparent 100%);
+    animation: sweep 2s linear infinite;
+    background-size: 200%;
+  }
+  @keyframes sweep { 0%{background-position:-200%} 100%{background-position:200%} }
+  .demo-pulse {
+    width: 60px; height: 20px; border-radius: 20px;
+    background: #1a5c35; color: #7ecf9a;
+    font-size: 0.55rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  @keyframes pulse-glow { 0%,100%{box-shadow:0 0 6px rgba(26,92,53,0.4)} 50%{box-shadow:0 0 18px rgba(46,204,113,0.7)} }
+  .demo-particle-wrap { height: 28px; position: relative; overflow: hidden; border-radius: 6px; background: rgba(0,0,0,0.2); }
+  .dp {
+    position:absolute; width:2px;height:2px;background:#2ecc71;border-radius:50%;opacity:0;
+    animation:float-up linear infinite;
+  }
+  .dp:nth-child(1){left:15%;animation-duration:2s;animation-delay:0s}
+  .dp:nth-child(2){left:35%;animation-duration:2.5s;animation-delay:0.3s;width:3px;height:3px}
+  .dp:nth-child(3){left:55%;animation-duration:2s;animation-delay:0.7s}
+  .dp:nth-child(4){left:75%;animation-duration:2.2s;animation-delay:1s}
+  @keyframes float-up {
+    0%{opacity:0;transform:translateY(28px)} 10%{opacity:.6} 90%{opacity:.2} 100%{opacity:0;transform:translateY(-4px)}
+  }
+  .demo-counter {
+    font-size: 1.4rem; font-weight: 800; color: #f0fff4;
+    animation: count-in 2s ease-out infinite;
+  }
+  @keyframes count-in { 0%{opacity:0;transform:translateY(8px)} 20%{opacity:1;transform:translateY(0)} 80%{opacity:1} 100%{opacity:0} }
+
+  /* Pages in scope */
+  .page-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .page-pill {
+    background: rgba(26,92,53,0.15);
+    border: 1px solid #1a5c35;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.75rem;
+    color: #c8e6ce;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .page-pill .dot { width:5px;height:5px;border-radius:50%;background:#2ecc71; }
+
+  /* Separator */
+  .sep { border: none; border-top: 1px solid #1a3a20; margin: 8px 0; }
+
+  #sel-bar {
+    position:fixed;bottom:0;left:0;right:0;
+    background:#070f09;border-top:1px solid #1a3a20;
+    padding:12px 28px;font-size:0.82rem;color:#aaa;
+    display:flex;align-items:center;gap:12px;z-index:100;
+  }
+  .approve-btn {
+    background:#1a5c35;color:#fff;border:none;
+    border-radius:6px;padding:7px 18px;font-size:0.82rem;cursor:pointer;font-weight:600;
+  }
+  .approve-btn:hover{background:#2ecc71;color:#000;}
+</style>
+</head>
+<body>
+
+<h1>Design System — Dark Forest Refined</h1>
+<p class="subtitle">Section 1 of 2 · Color tokens · Typography · Animations · Pages in scope</p>
+<hr class="sep">
+
+<h2>Color Tokens</h2>
+<div class="swatch-row">
+  <div class="swatch" style="background:#0c1a10;border:1px solid #1a3a20;">
+    <div class="swatch-name" style="color:#c8e6ce">Page Background</div>
+    <div class="swatch-hex" style="color:#6db87e">#0c1a10</div>
+    <div class="swatch-use" style="color:#4a7a5a">Main canvas</div>
+  </div>
+  <div class="swatch" style="background:#070f09;border:1px solid #1a3a20;">
+    <div class="swatch-name" style="color:#c8e6ce">Sidebar / Chrome</div>
+    <div class="swatch-hex" style="color:#6db87e">#070f09</div>
+    <div class="swatch-use" style="color:#4a7a5a">Nav, headers</div>
+  </div>
+  <div class="swatch" style="background:#1a5c35;border:1px solid #2a7a4a;">
+    <div class="swatch-name" style="color:#fff">Hunter Green</div>
+    <div class="swatch-hex" style="color:#c8e6ce">#1a5c35</div>
+    <div class="swatch-use" style="color:#9ecfac">Primary action, active nav</div>
+  </div>
+  <div class="swatch" style="background:#2ecc71;border:1px solid #2ecc71;">
+    <div class="swatch-name" style="color:#000">Glow Green</div>
+    <div class="swatch-hex" style="color:#063">  #2ecc71</div>
+    <div class="swatch-use" style="color:#063">Animations, badges, accents</div>
+  </div>
+</div>
+<div class="swatch-row">
+  <div class="swatch" style="background:rgba(255,255,255,0.05);border:1px solid #1a3a20;">
+    <div class="swatch-name" style="color:#c8e6ce">Card Surface</div>
+    <div class="swatch-hex" style="color:#6db87e">rgba(255,255,255,0.05)</div>
+    <div class="swatch-use" style="color:#4a7a5a">Stat cards, list rows</div>
+  </div>
+  <div class="swatch" style="background:#1a3a20;border:1px solid #2a4a28;">
+    <div class="swatch-name" style="color:#c8e6ce">Border</div>
+    <div class="swatch-hex" style="color:#6db87e">#1a3a20</div>
+    <div class="swatch-use" style="color:#4a7a5a">All borders, dividers</div>
+  </div>
+  <div class="swatch" style="background:#f0fff4;border:1px solid #c8e6ce;">
+    <div class="swatch-name" style="color:#0c1a10">Heading Text</div>
+    <div class="swatch-hex" style="color:#1a5c35">#f0fff4</div>
+    <div class="swatch-use" style="color:#1a5c35">H1, H2, stat numbers</div>
+  </div>
+  <div class="swatch" style="background:#c8e6ce;border:1px solid #9ecfac;">
+    <div class="swatch-name" style="color:#0c1a10">Body Text</div>
+    <div class="swatch-hex" style="color:#1a5c35">#c8e6ce</div>
+    <div class="swatch-use" style="color:#1a5c35">List rows, descriptions</div>
+  </div>
+</div>
+
+<h2>Typography Scale</h2>
+<div class="type-row">
+  <div class="type-sample">
+    <span class="type-meta">Page Title · 1.1rem · 800</span>
+    <span style="font-size:1.1rem;font-weight:800;color:#f0fff4">Owner Inbox</span>
+  </div>
+  <div class="type-sample">
+    <span class="type-meta">Section Title · 0.85rem · 700</span>
+    <span style="font-size:0.85rem;font-weight:700;color:#f0fff4">Active Projects</span>
+  </div>
+  <div class="type-sample">
+    <span class="type-meta">Stat Number · 1.4rem · 800</span>
+    <span style="font-size:1.4rem;font-weight:800;color:#f0fff4">24</span>
+  </div>
+  <div class="type-sample">
+    <span class="type-meta">Body / List Row · 0.72rem · 400</span>
+    <span style="font-size:0.72rem;color:#c8e6ce">Maya · Building Team Table Widget</span>
+  </div>
+  <div class="type-sample">
+    <span class="type-meta">Label · 0.62rem · 700 · uppercase</span>
+    <span style="font-size:0.62rem;font-weight:700;color:#6db87e;text-transform:uppercase;letter-spacing:0.1em">Active Leads</span>
+  </div>
+  <div class="type-sample">
+    <span class="type-meta">Nav Item · 0.65rem · 600 · uppercase</span>
+    <span style="font-size:0.65rem;font-weight:600;color:#5a8a6a;text-transform:uppercase;letter-spacing:0.05em">Dashboard</span>
+  </div>
+</div>
+
+<h2>Animation Inventory</h2>
+<div class="anim-grid">
+  <div class="anim-card">
+    <div class="anim-name">Glow Scan Bar</div>
+    <div class="anim-desc">Green light sweeps across dividers</div>
+    <div class="demo-glow-bar"></div>
+  </div>
+  <div class="anim-card">
+    <div class="anim-name">Card Shimmer</div>
+    <div class="anim-desc">Top-edge shimmer on stat cards</div>
+    <div class="demo-shimmer"></div>
+  </div>
+  <div class="anim-card">
+    <div class="anim-name">Pulse Badge</div>
+    <div class="anim-desc">LIVE / status badges breathe</div>
+    <div class="demo-pulse">● LIVE</div>
+  </div>
+  <div class="anim-card">
+    <div class="anim-name">Floating Particles</div>
+    <div class="anim-desc">Background ambiance on dashboard</div>
+    <div class="demo-particle-wrap">
+      <div class="dp"></div><div class="dp"></div><div class="dp"></div><div class="dp"></div>
+    </div>
+  </div>
+  <div class="anim-card">
+    <div class="anim-name">Count-In Numbers</div>
+    <div class="anim-desc">Stats fade+slide up on page load</div>
+    <div class="demo-counter">24</div>
+  </div>
+</div>
+
+<h2>Pages Being Redesigned</h2>
+<div class="page-grid">
+  <div class="page-pill"><div class="dot"></div>base.html (nav + layout shell)</div>
+  <div class="page-pill"><div class="dot"></div>index.html (dashboard)</div>
+  <div class="page-pill"><div class="dot"></div>lock.html (PIN login)</div>
+  <div class="page-pill"><div class="dot"></div>crm/ contacts, leads, deals, pipeline</div>
+  <div class="page-pill"><div class="dot"></div>projects/ list + detail</div>
+  <div class="page-pill"><div class="dot"></div>ro/ prospect profiles + pipeline</div>
+  <div class="page-pill"><div class="dot"></div>kb/ knowledge base</div>
+  <div class="page-pill"><div class="dot"></div>file_catalog/</div>
+</div>
+<p style="font-size:0.68rem;color:#4a7a5a;margin-top:10px">style.css will be fully replaced. All 31 templates updated to use new tokens.</p>
+
+<div id="sel-bar">
+  <span style="flex:1">Does this design system look right? Approve Section 1 to move to the layout structure.</span>
+  <button class="approve-btn" onclick="approve()">✓ Approve Section 1</button>
+</div>
+
+<script>
+function approve() {
+  try {
+    fetch('/event', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'click', choice:'approve-section-1', text:'Approved design system section', timestamp:Date.now()})
+    });
+  } catch(e) {}
+  document.getElementById('sel-bar').innerHTML = '<span style="color:#2ecc71;flex:1">✓ Section 1 approved — tell me in the terminal to continue to Section 2</span>';
+}
+</script>
+
+</body>
+</html>

@@ -76,10 +76,10 @@ Team Inbox (owner drops task/files)
 
 ```bash
 # Start the Owner Inbox web app (main business dashboard)
-cd "/home/ssinjin/RO-Marketing-Tools/Owner Inbox" && python3 app.py &
+cd "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox" && python3 app.py &
 
 # Start Rex's DB monitor (checks DB every 10 min, posts to Discord #ro-sales-rep)
-cd "/home/ssinjin/RO-Marketing-Tools/Owner Inbox" && python3 monitor.py &
+cd "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox" && python3 monitor.py &
 ```
 
 ---
@@ -97,15 +97,15 @@ cd "/home/ssinjin/RO-Marketing-Tools/Owner Inbox" && python3 monitor.py &
 
 | What | Path |
 |------|------|
-| Web app | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/app.py` |
-| DB monitor | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/monitor.py` |
-| Main database | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/instance/owner_inbox.db` |
-| Business DB | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/business.db` |
-| DB schema/models | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/database.py` |
-| Templates (HTML) | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/templates/` |
-| Static assets | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/static/` |
-| Reports output | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/reports/` |
-| Startup guide | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/STARTUP.md` |
+| Web app | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/app.py` |
+| DB monitor | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/monitor.py` |
+| Main database | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/instance/owner_inbox.db` |
+| Business DB | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/business.db` |
+| DB schema/models | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/database.py` |
+| Templates (HTML) | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/templates/` |
+| Static assets | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/static/` |
+| Reports output | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/reports/` |
+| Startup guide | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/STARTUP.md` |
 
 ---
 

@@ -20,6 +20,7 @@
   --radius-lg:     14px;
   --transition:    all 0.2s ease;
   --sidebar-width: 200px;
+  --green-primary-dark: #225f3a;
 }
 
 /* ── Reset ── */
@@ -702,8 +703,33 @@ details[open] summary { color: var(--green-glow); }
 }
 
 @keyframes shimmer {
-  0%, 100% { opacity: 0; }
-  50%       { opacity: 1; }
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+
+@keyframes shimmer-overlay {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(76,175,80,0.7); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(76,175,80,0); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes glow-scan {
@@ -720,6 +746,94 @@ details[open] summary { color: var(--green-glow); }
 @keyframes count-in {
   0%   { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Animation classes for templates
+   ============================================================ */
+
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.shimmer-card:hover::before {
+  animation-duration: 2s;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease forwards;
+}
+
+.animate-count-up {
+  animation: count-up 0.6s ease forwards;
+}
+
+.stat-value {
+  animation: count-in 0.6s ease forwards;
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(76,175,80,0.15);
+  color: #81c784;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(76,175,80,0.3);
+  animation: pulse-live 2s ease-in-out infinite;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #81c784;
+}
+
+/* Add shimmer to stat-cards and cards by default */
+.stat-card, .card, .agent-card, .pipeline .prospect-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before, .card::before, .agent-card::before, .pipeline .prospect-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent);
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.stat-card:hover, .card:hover, .agent-card:hover, .pipeline .prospect-card:hover {
+  border-color: rgba(212,175,55,0.3);
+  box-shadow: 0 0 30px rgba(212,175,55,0.1), inset 0 0 30px rgba(212,175,55,0.03);
+  transform: translateY(-3px);
+}
+
+/* Table hover effects */
+.table-wrapper table tbody tr:hover {
+  background: rgba(212,175,55,0.05);
 }
 
 /* ============================================================

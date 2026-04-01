@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RO Marketing Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
 
-<div class="app-shell">
+<!-- Particle Canvas -->
+<canvas id="particleCanvas" class="particle-canvas"></canvas>
+
+<div class="app-shell" style="position:relative; z-index:1;">
 
   <!-- Sidebar -->
   <nav class="sidebar" id="sidebar">
@@ -113,6 +119,44 @@
     font-size:0.72rem; font-weight:600; background:transparent; color:#5a8a6a; transition:all .15s;
 }
 .model-btn.active { background:#1a5c35; color:#fff; }
+
+/* Particle Canvas */
+.particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Gold Shimmer Animation for Logo Mark */
+@keyframes goldShimmer {
+    0%, 100% {
+        background: linear-gradient(135deg, #D4AF37 0%, #F4E5B2 50%, #D4AF37 100%);
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.4), 0 0 16px rgba(212, 175, 55, 0.2);
+    }
+    50% {
+        background: linear-gradient(135deg, #F4E5B2 0%, #D4AF37 50%, #F4E5B2 100%);
+        box-shadow: 0 0 12px rgba(212, 175, 55, 0.6), 0 0 24px rgba(212, 175, 55, 0.3);
+    }
+}
+.sidebar-logo-mark {
+    animation: goldShimmer 3s ease-in-out infinite;
+}
+
+/* Gold border for active nav */
+.sidebar-nav a.active {
+    border-left: 3px solid #D4AF37 !important;
+    background: rgba(212, 175, 55, 0.08);
+}
+
+/* Gold glow for topbar */
+.topbar {
+    border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 0 2px 12px rgba(212, 175, 55, 0.15);
+}
 </style>
 
 <script>
@@ -192,6 +236,97 @@ async function sendChat() {
         appendMsg('assistant', '⚠ Request failed.');
     }
 }
+
+// Particle Animation
+(function() {
+    const canvas = document.getElementById('particleCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    let particles = [];
+    const PARTICLE_COUNT = 7;
+    const COLORS = ['#D4AF37', '#2ecc71']; // gold and green
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function createParticle(startAtBottom) {
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        return {
+            x: Math.random() * canvas.width,
+            y: startAtBottom ? canvas.height + 10 : Math.random() * canvas.height,
+            radius: 2 + Math.random() * 2,
+            color: color,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: -(0.3 + Math.random() * 0.5),
+            alpha: startAtBottom ? 0 : (0.3 + Math.random() * 0.4),
+            fadeIn: startAtBottom,
+            fadeOut: false
+        };
+    }
+
+    // Initialize particles spread across the canvas
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push(createParticle(false));
+    }
+
+    function drawParticle(p) {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+
+            // Fade in at bottom
+            if (p.fadeIn && p.y > canvas.height * 0.7) {
+                p.alpha = Math.min(p.alpha + 0.02, 0.6);
+            }
+
+            // Start fade out near top
+            if (p.y < canvas.height * 0.15) {
+                p.fadeIn = false;
+                p.fadeOut = true;
+            }
+
+            if (p.fadeOut) {
+                p.alpha = Math.max(p.alpha - 0.015, 0);
+            }
+
+            // Move
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Slight horizontal drift
+            p.vx += (Math.random() - 0.5) * 0.02;
+
+            drawParticle(p);
+
+            // Respawn if faded out or exited top
+            if (p.alpha <= 0 || p.y < -10) {
+                particles[i] = createParticle(true);
+            }
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+})();
 </script>
 
 </body>

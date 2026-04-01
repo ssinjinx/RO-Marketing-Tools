@@ -33,9 +33,9 @@ load_env()
 
 # --- Configuration -----------------------------------------------------------
 
-DB_PATH = "/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/instance/owner_inbox.db"
-REPORTS_DIR = "/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/reports"
-STATE_FILE = "/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/monitor_state.json"
+DB_PATH = "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/instance/owner_inbox.db"
+REPORTS_DIR = "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/reports"
+STATE_FILE = "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/monitor_state.json"
 DISCORD_API_URL = "https://discord.com/api/v10/channels/{channel_id}/messages"
 ORCHESTRATOR_CHANNEL_ID = "1485795618185154662"
 SLEEP_SECONDS = 600  # 10 minutes

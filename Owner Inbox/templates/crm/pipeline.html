@@ -6,7 +6,7 @@
     <a href="{{ url_for('deals_new') }}" class="btn-primary">+ New Deal</a>
 </div>
 
-<div class="pipeline-board">
+<div class="pipeline-board animate-fade-in-up">
     {% for stage in stages %}
     {% set stage_deals = deals_by_stage.get(stage.name, []) %}
     <div class="pipeline-column">

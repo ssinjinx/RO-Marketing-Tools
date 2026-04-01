@@ -6,7 +6,7 @@
     <a href="{{ url_for('ro_profile_add') }}" class="btn-primary">+ Add Prospect</a>
 </div>
 
-<div class="pipeline-board">
+<div class="pipeline-board animate-fade-in-up">
 
     {% set col_labels = {
         'new': 'New',
@@ -24,7 +24,7 @@
 
         {% if columns[status_key] %}
             {% for p in columns[status_key] %}
-            <div class="prospect-card">
+            <div class="prospect-card shimmer-card">
                 <div class="card-title">
                     <a href="{{ url_for('ro_profile_view', prospect_id=p.id) }}"
                        class="link-dark">{{ p.business_name }}</a>

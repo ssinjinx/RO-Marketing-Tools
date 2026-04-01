@@ -14,49 +14,49 @@
   <div class="particle"></div>
 </div>
 
-<div class="stat-grid" style="position:relative;z-index:1;">
-    <div class="stat-card">
-        <div class="count">{{ counts.files }}</div>
+<div class="stat-grid animate-fade-in-up" style="position:relative;z-index:1;">
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.files }}</div>
         <div class="label">Files in Catalog</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.articles }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.articles }}</div>
         <div class="label">KB Articles</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.contacts }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.contacts }}</div>
         <div class="label">CRM Contacts</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.deals }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.deals }}</div>
         <div class="label">Deals</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.active_projects }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.active_projects }}</div>
         <div class="label">Active Projects</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.open_tasks }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.open_tasks }}</div>
         <div class="label">Open Tasks</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.working_agents }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.working_agents }}</div>
         <div class="label">Active Agents</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.ro_prospects }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.ro_prospects }}</div>
         <div class="label">Total Prospects</div>
     </div>
-    <div class="stat-card">
-        <div class="count">{{ counts.ro_new_prospects }}</div>
+    <div class="stat-card shimmer-card">
+        <div class="count stat-value">{{ counts.ro_new_prospects }}</div>
         <div class="label">New Prospects</div>
     </div>
 </div>
 
 <h2 class="section-title" style="position:relative;z-index:1;">Team</h2>
-<div class="agent-grid" style="position:relative;z-index:1;">
+<div class="agent-grid animate-fade-in" style="position:relative;z-index:1; animation-delay: 0.2s;">
 {% for agent in agents %}
-<div class="agent-card">
+<div class="agent-card shimmer-card">
     <div>
         <span class="badge badge-{{ agent['status'] }}">{{ agent['status'] }}</span>
     </div>

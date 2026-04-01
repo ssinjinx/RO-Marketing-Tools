@@ -7,7 +7,7 @@
 </div>
 
 {# ── Industry tabs ── #}
-<div class="ind-tabs">
+<div class="ind-tabs animate-fade-in">
     <a href="{{ url_for('ro_profiles') }}"
        class="ind-tab {% if not current_industry %}ind-tab-active{% endif %}">
         All <span class="ind-count">{{ total if not current_industry else '' }}</span>
@@ -21,7 +21,7 @@
 </div>
 
 {% if prospects %}
-<div class="table-wrapper">
+<div class="table-wrapper animate-fade-in" style="animation-delay: 0.1s;">
 <table>
     <thead>
         <tr>

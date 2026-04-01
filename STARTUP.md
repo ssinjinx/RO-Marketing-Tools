@@ -12,13 +12,13 @@ Run these commands to bring the system back online:
 
 ```bash
 # Start the Owner Inbox web app (main business dashboard)
-cd "/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox" && python3 app.py &
+cd "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox" && python3 app.py &
 
 # Start Rex's DB monitor (checks DB every 10 min, posts updates to Discord #ro-sales-rep)
-cd "/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox" && python3 monitor.py &
+cd "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox" && python3 monitor.py &
 
 # Start the Team Inbox Watcher (monitors Team Inbox for new tasks, assigns to agents)
-cd "/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox" && python3 team_inbox_watcher.py &
+cd "/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox" && python3 team_inbox_watcher.py &
 ```
 
 To confirm all are running:
@@ -92,15 +92,15 @@ ps aux | grep python3
 
 | What | Path |
 |------|------|
-| Web app | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/app.py` |
-| DB monitor | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/monitor.py` |
-| Team Inbox Watcher | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/team_inbox_watcher.py` |
-| Main database | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/instance/owner_inbox.db` |
-| Business DB | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/business.db` |
-| DB schema/models | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/database.py` |
-| Templates (HTML) | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/templates/` |
-| Static assets | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/static/` |
-| Reports output | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/reports/` |
-| Project CLAUDE.md | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/.claude/CLAUDE.md` |
-| Team Inbox | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Team Inbox/` |
-| Owner Inbox dir | `/home/ssinjin/.openclaw/workspace/RO-Marketing-Tools/Owner Inbox/` |
+| Web app | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/app.py` |
+| DB monitor | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/monitor.py` |
+| Team Inbox Watcher | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/team_inbox_watcher.py` |
+| Main database | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/instance/owner_inbox.db` |
+| Business DB | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/business.db` |
+| DB schema/models | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/database.py` |
+| Templates (HTML) | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/templates/` |
+| Static assets | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/static/` |
+| Reports output | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/reports/` |
+| Project CLAUDE.md | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/.claude/CLAUDE.md` |
+| Team Inbox | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Team Inbox/` |
+| Owner Inbox dir | `/home/ssinjin/Cyber-Network/RO-Marketing-Tools/Owner Inbox/` |
